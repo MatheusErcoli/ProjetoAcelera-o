@@ -1,0 +1,27 @@
+{
+    "name": "jusce/doctrine",
+    "description": "Template para um projeto com Doctrine",
+    "type": "project",
+    "require": {
+        "doctrine/orm": "^3.5",
+        "doctrine/dbal": "^4.3",
+        "symfony/cache": "^7.3",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Juscelino Fernandes da Costa Junior",
+            "email": "juscostajr@gmail.com"
+        }
+    ],
+    "scripts": {
+        "create-db": "php bin/doctrine orm:schema-tool:create",
+        "update-db": "php bin/doctrine orm:schema-tool:update --force",
+        "start": "php -S localhost:8000 -t public"
+    }
+}
