@@ -117,55 +117,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const title = document.querySelector('.login-header h1');
     const originalText = title.textContent;
     title.textContent = '';
-    
+
     let i = 0;
-    const typeWriter = () => {
-        if (i < originalText.length) {
-        }
-        
-        if (hasErrors) {
-            return;
-        }
-
-    // Efeitos visuais adicionais
-    const inputs = document.querySelectorAll('input');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            this.parentElement.classList.add('focused');
-        });
-        
-        input.addEventListener('blur', function() {
-            this.parentElement.classList.remove('focused');
-        });
-    });
-
-    // Animação de entrada dos elementos
-    const formGroups = document.querySelectorAll('.form-group');
-    formGroups.forEach((group, index) => {
-        group.style.opacity = '0';
-        group.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            group.style.transition = 'all 0.5s ease';
-            group.style.opacity = '1';
-            group.style.transform = 'translateY(0)';
-        }, 100 * (index + 1));
-    });
-
-    // Efeito de digitação no título
-    const title = document.querySelector('.login-header h1');
-    const originalText = title.textContent;
-    title.textContent = '';
-    
-    let i = 0;
-    const typeWriter = () => {
+    function typeWriter() {
         if (i < originalText.length) {
             title.textContent += originalText.charAt(i);
             i++;
             setTimeout(typeWriter, 100);
         }
-    };
-    
+    }
     setTimeout(typeWriter, 500);
-}
 });

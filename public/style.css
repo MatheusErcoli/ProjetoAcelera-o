@@ -182,7 +182,7 @@ body {
     background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
     color: var(--white);
     border: none;
-    padding: 16px 24px;
+    padding: 16px 146px;
     border-radius: 8px;
     font-size: 16px;
     font-weight: 600;
@@ -244,35 +244,6 @@ body {
     color: var(--error);
     border: 1px solid rgba(220, 53, 69, 0.2);
 }
-
-/* Animações */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
 
 @media (max-width: 480px) {
     .login-container {

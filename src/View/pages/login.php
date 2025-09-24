@@ -25,7 +25,6 @@
             </div>
             <button type="submit" class="login-btn">
                 <span class="btn-text">Entrar</span>
-                <div class="loading-spinner" style="display: none;"></div>
             </button>
             <div class="form-footer">
                 <p>Não tem uma conta? <a href="#" class="register-link">Cadastre-se</a></p>
