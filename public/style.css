@@ -290,4 +290,365 @@ a::after {
 a:hover::after {
     width: 100%;
 }
+/* Estilos específicos para a página de registro */
+
+.register-container {
+    width: 100%;
+    max-width: 600px;
+}
+
+.register-card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px var(--shadow);
+    padding: 40px 30px;
+    position: relative;
+    overflow: hidden;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.register-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-blue), var(--dark-blue));
+}
+
+.register-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.register-header h1 {
+    color: var(--dark-blue);
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.register-header p {
+    color: var(--gray);
+    font-size: 16px;
+}
+
+/* Seletor de tipo de usuário */
+.user-type-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: var(--light-gray);
+    padding: 6px;
+    border-radius: 12px;
+}
+
+.type-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--gray);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.type-btn:hover {
+    background: rgba(135, 206, 235, 0.1);
+    color: var(--dark-blue);
+}
+
+.type-btn.active {
+    background: var(--white);
+    color: var(--dark-blue);
+    box-shadow: 0 2px 8px rgba(70, 130, 180, 0.15);
+}
+
+.type-icon {
+    font-size: 24px;
+}
+
+.type-text {
+    font-weight: 600;
+}
+
+/* Formulário de registro */
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* Seções do formulário */
+.form-section {
+    border: 1px solid #E9ECEF;
+    border-radius: 12px;
+    padding: 20px;
+    background: rgba(224, 246, 255, 0.3);
+}
+
+.section-title {
+    color: var(--dark-blue);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--primary-blue);
+}
+
+/* Layout de linha para campos lado a lado */
+.form-row {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.form-row .form-group {
+    margin-bottom: 0;
+}
+
+.form-group.flex-1 {
+    flex: 1;
+}
+
+.form-group.flex-2 {
+    flex: 2;
+}
+
+/* Estilos para select */
+.form-group select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #E9ECEF;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: var(--white);
+    cursor: pointer;
+}
+
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Estilos para textarea */
+.form-group textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #E9ECEF;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: var(--white);
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Máscara para campos */
+.form-group input[type="tel"] {
+    font-family: monospace;
+}
+
+/* Botão de registro */
+.register-btn {
+    background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+    color: var(--white);
+    border: none;
+    padding: 16px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.register-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--shadow-hover);
+}
+
+.register-btn:active {
+    transform: translateY(0);
+}
+
+.register-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Links */
+.terms-link,
+.login-link {
+    color: var(--primary-blue);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.terms-link:hover,
+.login-link:hover {
+    color: var(--dark-blue);
+}
+
+/* Animações específicas */
+.form-section {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideInUp 0.5s ease-out forwards;
+}
+
+.form-section:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.form-section:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.form-section:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+@keyframes slideInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Transição suave para mostrar/ocultar seção de prestador */
+#prestadorSection {
+    transition: all 0.4s ease;
+    overflow: hidden;
+    max-height: 0; /* Começa oculto */
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+#prestadorSection.show {
+    max-height: 200px; /* Altura máxima para a animação */
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#prestadorSection.hide {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+
+
+/* Responsividade específica para registro */
+@media (max-width: 768px) {
+    .register-container {
+        max-width: 100%;
+        padding: 10px;
+    }
+    
+    .register-card {
+        padding: 30px 20px;
+        max-height: 95vh;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .form-row .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .user-type-selector {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .type-btn {
+        flex-direction: row;
+        justify-content: center;
+        padding: 12px 16px;
+    }
+    
+    .type-icon {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .register-header h1 {
+        font-size: 24px;
+    }
+    
+    .form-section {
+        padding: 15px;
+    }
+    
+    .section-title {
+        font-size: 16px;
+    }
+}
+
+/* Estados de validação específicos */
+.form-group input.valid,
+.form-group select.valid,
+.form-group textarea.valid {
+    border-color: var(--success);
+}
+
+.form-group input.invalid,
+.form-group select.invalid,
+.form-group textarea.invalid {
+    border-color: var(--error);
+}
+
+/* Indicador de campo obrigatório */
+.form-group label::after {
+    content: ' *';
+    color: var(--error);
+    font-weight: bold;
+}
+
+.form-group label[for="complemento"]::after {
+    content: '';
+}
+
+/* Efeito de foco melhorado para campos específicos */
+.form-group input[type="tel"]:focus {
+    background: rgba(135, 206, 235, 0.05);
+}
+
+.form-group select:focus {
+    background: rgba(135, 206, 235, 0.05);
+}
+
+.form-group textarea:focus {
+    background: rgba(135, 206, 235, 0.05);
+}
+
 
