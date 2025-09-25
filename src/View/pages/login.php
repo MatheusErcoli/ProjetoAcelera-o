@@ -27,7 +27,7 @@
                 <span class="btn-text">Entrar</span>
             </button>
             <div class="form-footer">
-                <p>Não tem uma conta? <a href="#" class="register-link">Cadastre-se</a></p>
+                <p>Não tem uma conta? <a href="registro" class="register-link">Cadastre-se</a></p>
             </div>
         </form>
         <div class="alert" id="alertMessage" style="display: none;">
