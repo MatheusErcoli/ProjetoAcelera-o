@@ -36,6 +36,8 @@ const {
   GalleryImage,
   Order,
   Review,
+  LoginCode,
+  RefreshToken,
 } = db;
 
 if (User && Address) {
@@ -85,6 +87,26 @@ if (User && Order) {
   User.hasMany(Order, { as: "customerOrders", foreignKey: "customer_id" });
   Order.belongsTo(User, { as: "provider", foreignKey: "provider_id" });
   Order.belongsTo(User, { as: "customer", foreignKey: "customer_id" });
+}
+
+// Login Codes
+if (User && LoginCode) {
+  User.hasMany(LoginCode, {
+    as: "loginCodes",
+    foreignKey: "user_id",
+    onDelete: "CASCADE",
+  });
+  LoginCode.belongsTo(User, { as: "user", foreignKey: "user_id" });
+}
+
+// Refresh Tokens
+if (User && RefreshToken) {
+  User.hasMany(RefreshToken, {
+    as: "refreshTokens",
+    foreignKey: "user_id",
+    onDelete: "CASCADE",
+  });
+  RefreshToken.belongsTo(User, { as: "user", foreignKey: "user_id" });
 }
 
 if (Service && Order) {
