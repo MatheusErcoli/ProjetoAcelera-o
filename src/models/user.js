@@ -12,8 +12,8 @@ module.exports = (sequelize) => {
         unique: true,
         validate: { isEmail: true },
       },
-      whatsapp: { type: DataTypes.STRING(20), allowNull: true },
-      photo_url: { type: DataTypes.STRING(255), allowNull: true },
+      whatsapp: { type: DataTypes.STRING(20), allowNull: false, unique: true },
+      photo_url: { type: DataTypes.STRING(255), allowNull: false },
       role: {
         type: DataTypes.ENUM("CONTRATANTE", "PRESTADOR", "ADMIN"),
         allowNull: false,
@@ -24,7 +24,14 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: true,
       },
-      email_verified_at: { type: DataTypes.DATE, allowNull: true },
+      email_verified_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      password_hash: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
     },
     {
       tableName: "users",

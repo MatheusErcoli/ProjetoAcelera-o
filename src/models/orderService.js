@@ -2,29 +2,33 @@
 const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
-  const Order = sequelize.define(
-    "Order",
+  const OrderService = sequelize.define(
+    "OrderService",
     {
-      provider_id: {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      order_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      customer_id: {
+      service_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      status: {
-        type: DataTypes.STRING(20),
+      quantidade: {
+        type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: "REQUESTED",
+        defaultValue: 1,
       },
-      scheduled_at: {
-        type: DataTypes.DATE,
-        allowNull: true,
+      observacoes: {
+        type: DataTypes.TEXT,
       },
     },
     {
-      tableName: "orders",
+      tableName: "order_services",
       underscored: true,
       timestamps: true,
       createdAt: "created_at",
@@ -32,5 +36,5 @@ module.exports = (sequelize) => {
     }
   );
 
-  return Order;
+  return OrderService;
 };

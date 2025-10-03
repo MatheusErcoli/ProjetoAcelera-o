@@ -6,8 +6,8 @@ module.exports = {
       id: { type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true },
       name: { type: Sequelize.STRING(120), allowNull: false },
       email: { type: Sequelize.STRING(160), allowNull: false, unique: true },
-      whatsapp: { type: Sequelize.STRING(20) },
-      photo_url: { type: Sequelize.STRING(255) },
+      whatsapp: { type: Sequelize.STRING(20), allowNull: false, unique: true },
+      photo_url: { type: Sequelize.STRING(255), allowNull: false },
       role: {
         type: Sequelize.ENUM("CONTRATANTE", "PRESTADOR", "ADMIN"),
         allowNull: false,
@@ -23,6 +23,10 @@ module.exports = {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.fn("NOW"),
+      },
+      password_hash: {
+        type: Sequelize.STRING(255),
+        allowNull: false,
       },
       updated_at: {
         type: Sequelize.DATE,

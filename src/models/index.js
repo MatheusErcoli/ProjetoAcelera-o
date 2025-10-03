@@ -38,6 +38,8 @@ const {
   Review,
   LoginCode,
   RefreshToken,
+  AdminLog,
+  OrderService,
 } = db;
 
 if (User && Address) {
@@ -109,9 +111,17 @@ if (User && RefreshToken) {
   RefreshToken.belongsTo(User, { as: "user", foreignKey: "user_id" });
 }
 
-if (Service && Order) {
-  Order.belongsTo(Service, { as: "service", foreignKey: "service_id" });
-  Service.hasMany(Order, { as: "orders", foreignKey: "service_id" });
+if (User && AdminLog) {
+  User.hasMany(AdminLog, {
+    as: "logs",
+    foreignKey: "admin_id",
+    onDelete: "SET NULL",
+  });
+  AdminLog.belongsTo(User, {
+    as: "admin",
+    foreignKey: "admin_id",
+    onDelete: "SET NULL",
+  });
 }
 
 if (Order && Review && User) {
@@ -127,6 +137,22 @@ if (Order && Review && User) {
 
   User.hasMany(Review, { as: "authoredReviews", foreignKey: "author_id" });
   User.hasMany(Review, { as: "receivedReviews", foreignKey: "target_id" });
+}
+
+if (Order && Service && OrderService) {
+  Order.belongsToMany(Service, {
+    through: OrderService,
+    as: "services",
+    foreignKey: "order_id",
+    otherKey: "service_id",
+  });
+
+  Service.belongsToMany(Order, {
+    through: OrderService,
+    as: "orders",
+    foreignKey: "service_id",
+    otherKey: "order_id",
+  });
 }
 
 db.sequelize = sequelize;
