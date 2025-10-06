@@ -36,5 +36,19 @@ module.exports = (sequelize) => {
     }
   );
 
+  OrderService.associate = (models) => {
+    OrderService.belongsTo(models.Order, {
+      foreignKey: "order_id",
+      as: "order",
+      onDelete: "CASCADE",
+    });
+
+    OrderService.belongsTo(models.Service, {
+      foreignKey: "service_id",
+      as: "service",
+      onDelete: "CASCADE",
+    });
+  };
+
   return OrderService;
 };

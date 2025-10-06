@@ -16,8 +16,20 @@ module.exports = (sequelize) => {
     {
       tableName: "services",
       underscored: true,
+      timestamps: true,
+      createdAt: "created_at",
+      updatedAt: "updated_at",
     }
   );
+
+  Service.associate = (models) => {
+    Service.belongsToMany(models.Order, {
+      through: models.OrderService,
+      foreignKey: "service_id",
+      otherKey: "order_id",
+      as: "orders",
+    });
+  };
 
   return Service;
 };
