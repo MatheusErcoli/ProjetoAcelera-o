@@ -3,7 +3,16 @@
 module.exports = {
   async up(queryInterface) {
     const now = new Date();
-    await queryInterface.bulkInsert("services", [
+    
+    // Verificar se os serviços já existem
+    const existingServices = await queryInterface.sequelize.query(
+      `SELECT name FROM services WHERE name IN ('Encanador', 'Eletricista', 'Marido de Aluguel', 'Pintor', 'Pedreiro')`,
+      { type: queryInterface.sequelize.QueryTypes.SELECT }
+    );
+    
+    const existingServiceNames = existingServices.map(service => service.name);
+    
+    const servicesToInsert = [
       {
         name: "Encanador",
         description: "Hidráulica, vazamentos, reparo e instalação de canos",
@@ -39,7 +48,11 @@ module.exports = {
         created_at: now,
         updated_at: now,
       },
-    ]);
+    ].filter(service => !existingServiceNames.includes(service.name));
+    
+    if (servicesToInsert.length > 0) {
+      await queryInterface.bulkInsert("services", servicesToInsert);
+    }
   },
 
   async down(queryInterface) {
