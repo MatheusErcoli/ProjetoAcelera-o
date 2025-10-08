@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PrestadoresClimber Design System - All colors MUST be HSL */
+
+@layer base {
+  :root {
+    /* Core Brand Colors */
+    --primary-blue: 194 71% 73%;     /* #87CEEB */
+    --light-blue: 195 100% 94%;      /* #E0F6FF */
+    --dark-blue: 207 54% 56%;        /* #4682B4 */
+    
+    /* Neutrals */
+    --white: 0 0% 100%;              /* #FFFFFF */
+    --light-gray: 210 17% 98%;       /* #F8F9FA */
+    --gray: 208 7% 46%;              /* #6C757D */
+    --dark-gray: 210 11% 31%;        /* #495057 */
+    
+    /* Status Colors */
+    --success: 134 61% 41%;          /* #28A745 */
+    --error: 354 70% 54%;            /* #DC3545 */
+    
+    /* Shadows */
+    --shadow: 207 54% 56% / 0.1;     /* rgba(70, 130, 180, 0.1) */
+    --shadow-hover: 207 54% 56% / 0.2; /* rgba(70, 130, 180, 0.2) */
+    
+    /* Design System Tokens */
+    --background: var(--light-blue);
+    --foreground: var(--dark-gray);
+
+    --card: var(--white);
+    --card-foreground: var(--dark-gray);
+
+    --popover: var(--white);
+    --popover-foreground: var(--dark-gray);
+
+    --primary: var(--dark-blue);
+    --primary-foreground: var(--white);
+
+    --secondary: var(--light-gray);
+    --secondary-foreground: var(--dark-gray);
+
+    --muted: var(--light-gray);
+    --muted-foreground: var(--gray);
+
+    --accent: var(--primary-blue);
+    --accent-foreground: var(--dark-gray);
+
+    --destructive: var(--error);
+    --destructive-foreground: var(--white);
+
+    --border: hsl(var(--primary-blue) / 0.2);
+    --input: var(--white);
+    --ring: var(--dark-blue);
+
+    --radius: 0.75rem;
+
+    /* Sidebar specific tokens */
+    --sidebar-background: var(--white);
+    --sidebar-foreground: var(--dark-gray);
+    --sidebar-primary: var(--dark-blue);
+    --sidebar-primary-foreground: var(--white);
+    --sidebar-accent: var(--light-gray);
+    --sidebar-accent-foreground: var(--dark-gray);
+    --sidebar-border: hsl(var(--primary-blue) / 0.2);
+    --sidebar-ring: var(--dark-blue);
+  }
+
+  /* Dark mode - keeping it simple for now */
+  .dark {
+    --background: var(--dark-gray);
+    --foreground: var(--white);
+    --card: hsl(var(--dark-gray));
+    --card-foreground: var(--white);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  .admin-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary-blue)), hsl(var(--light-blue)));
+  }
+
+  .card-shadow {
+    box-shadow: 0 4px 20px hsl(var(--shadow));
+  }
+
+  .card-shadow:hover {
+    box-shadow: 0 8px 30px hsl(var(--shadow-hover));
+  }
+
+  .status-active {
+    @apply bg-success/10 text-success border-success/20;
+  }
+
+  .status-inactive {
+    @apply bg-error/10 text-error border-error/20;
+  }
+}
