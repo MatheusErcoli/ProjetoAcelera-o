@@ -1,5 +1,14 @@
-import { useState } from "react";
-import { Search, Filter, MoreHorizontal, MapPin, Phone, CheckCircle, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { apiUrl } from "@/config/api";
+import {
+  Search,
+  Filter,
+  MoreHorizontal,
+  MapPin,
+  Phone,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,101 +36,77 @@ interface Provider {
   phone: string;
   address: string;
   services: string[];
-  status: 'active' | 'inactive' | 'pending';
+  status: "active" | "inactive" | "pending";
   rating: number;
   totalJobs: number;
   joinDate: string;
   avatar?: string;
 }
 
-const mockProviders: Provider[] = [
-  {
-    id: 1,
-    name: "João da Silva",
-    email: "joao@email.com",
-    phone: "(44) 99999-0001",
-    address: "Rua das Flores, 123 - Centro, Campo Mourão-PR",
-    services: ["Encanador", "Hidráulica"],
-    status: 'active',
-    rating: 4.8,
-    totalJobs: 45,
-    joinDate: "15/12/2023"
-  },
-  {
-    id: 2,
-    name: "Maria Santos",
-    email: "maria@email.com", 
-    phone: "(44) 99999-0002",
-    address: "Av. Brasil, 456 - Jardim Modelo, Campo Mourão-PR",
-    services: ["Eletricista", "Instalações"],
-    status: 'pending',
-    rating: 0,
-    totalJobs: 0,
-    joinDate: "20/01/2024"
-  },
-  {
-    id: 3,
-    name: "Carlos Pereira",
-    email: "carlos@email.com",
-    phone: "(44) 99999-0003", 
-    address: "Rua do Trabalhador, 789 - Vila Operária, Campo Mourão-PR",
-    services: ["Pedreiro", "Reformas"],
-    status: 'active',
-    rating: 4.9,
-    totalJobs: 32,
-    joinDate: "03/11/2023"
-  },
-  {
-    id: 4,
-    name: "Ana Costa",
-    email: "ana@email.com",
-    phone: "(44) 99999-0004",
-    address: "Rua das Palmeiras, 321 - Cohapar, Campo Mourão-PR", 
-    services: ["Pintora", "Decoração"],
-    status: 'inactive',
-    rating: 4.2,
-    totalJobs: 18,
-    joinDate: "10/09/2023"
-  }
-];
+// Os dados agora serão buscados do backend
 
 export default function AdminPrestadores() {
-  const [providers, setProviders] = useState<Provider[]>(mockProviders);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  useEffect(() => {
+    fetch(`${apiUrl}/providers`)
+      .then((res) => res.json())
+      .then((data) => setProviders(data))
+      .catch((err) => {
+        console.error("Erro ao buscar prestadores:", err);
+        setProviders([]); // ou setProviders(mockProviders) para fallback
+      });
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-  const [actionDialog, setActionDialog] = useState<{open: boolean, action: 'activate' | 'deactivate' | null}>({
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(
+    null
+  );
+  const [actionDialog, setActionDialog] = useState<{
+    open: boolean;
+    action: "activate" | "deactivate" | null;
+  }>({
     open: false,
-    action: null
+    action: null,
   });
 
-  const filteredProviders = providers.filter(provider => {
-    const matchesSearch = provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         provider.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         provider.services.some(service => service.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = statusFilter === "all" || provider.status === statusFilter;
-    
+  const filteredProviders = providers.filter((provider) => {
+    const matchesSearch =
+      provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.services.some((service: any) =>
+        typeof service === "object"
+          ? service.name.toLowerCase().includes(searchTerm.toLowerCase())
+          : service.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+    const matchesStatus =
+      statusFilter === "all" || provider.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = (providerId: number, newStatus: 'active' | 'inactive') => {
-    setProviders(providers.map(provider => 
-      provider.id === providerId 
-        ? { ...provider, status: newStatus }
-        : provider
-    ));
+  const handleStatusChange = (
+    providerId: number,
+    newStatus: "active" | "inactive"
+  ) => {
+    setProviders(
+      providers.map((provider) =>
+        provider.id === providerId
+          ? { ...provider, status: newStatus }
+          : provider
+      )
+    );
     setActionDialog({ open: false, action: null });
     setSelectedProvider(null);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active':
+      case "active":
         return <Badge className="status-active">Ativo</Badge>;
-      case 'inactive':
+      case "inactive":
         return <Badge className="status-inactive">Inativo</Badge>;
-      case 'pending':
+      case "pending":
         return <Badge variant="secondary">Pendente</Badge>;
       default:
         return <Badge variant="outline">Desconhecido</Badge>;
@@ -133,7 +118,9 @@ export default function AdminPrestadores() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Prestadores de Serviço</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Prestadores de Serviço
+          </h1>
           <p className="text-muted-foreground">
             Gerencie os prestadores cadastrados na plataforma
           </p>
@@ -155,7 +142,7 @@ export default function AdminPrestadores() {
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-2">
               <Button
                 variant={statusFilter === "all" ? "default" : "outline"}
@@ -169,21 +156,23 @@ export default function AdminPrestadores() {
                 onClick={() => setStatusFilter("active")}
                 size="sm"
               >
-                Ativos ({providers.filter(p => p.status === 'active').length})
+                Ativos ({providers.filter((p) => p.status === "active").length})
               </Button>
               <Button
                 variant={statusFilter === "pending" ? "default" : "outline"}
                 onClick={() => setStatusFilter("pending")}
                 size="sm"
               >
-                Pendentes ({providers.filter(p => p.status === 'pending').length})
+                Pendentes (
+                {providers.filter((p) => p.status === "pending").length})
               </Button>
               <Button
                 variant={statusFilter === "inactive" ? "default" : "outline"}
                 onClick={() => setStatusFilter("inactive")}
                 size="sm"
               >
-                Inativos ({providers.filter(p => p.status === 'inactive').length})
+                Inativos (
+                {providers.filter((p) => p.status === "inactive").length})
               </Button>
             </div>
           </div>
@@ -193,44 +182,75 @@ export default function AdminPrestadores() {
       {/* Providers List */}
       <div className="grid gap-4">
         {filteredProviders.map((provider) => (
-          <Card key={provider.id} className="card-shadow hover:shadow-lg transition-shadow">
+          <Card
+            key={provider.id}
+            className="card-shadow hover:shadow-lg transition-shadow"
+          >
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
                   <Avatar className="w-16 h-16">
                     <AvatarImage src={provider.avatar} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                      {provider.name.split(' ').map(n => n[0]).join('')}
+                      {provider.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-foreground">{provider.name}</h3>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {provider.name}
+                      </h3>
                       {getStatusBadge(provider.status)}
                     </div>
-                    
+
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <p>{provider.email}</p>
                       <div className="flex items-center gap-1">
                         <Phone className="w-3 h-3" />
-                        <span>{provider.phone}</span>
+                        <span>
+                          {provider.phone ||
+                            provider.whatsapp ||
+                            "Não informado"}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
-                        <span>{provider.address}</span>
+                        <span>
+                          {typeof provider.address === "object" &&
+                          provider.address !== null
+                            ? `${provider.address.logradouro || ""}, ${
+                                provider.address.numero || ""
+                              }${
+                                provider.address.complemento
+                                  ? " - " + provider.address.complemento
+                                  : ""
+                              }, ${provider.address.bairro || ""}, ${
+                                provider.address.cidade || ""
+                              }-${provider.address.uf || ""}`
+                            : provider.address}
+                        </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {provider.services.map((service) => (
-                        <Badge key={service} variant="outline" className="text-xs">
-                          {service}
+                      {provider.services.map((service: any) => (
+                        <Badge
+                          key={service.id || service}
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {typeof service === "object" && service !== null
+                            ? service.name
+                            : service}
                         </Badge>
                       ))}
                     </div>
-                    
-                    {provider.status === 'active' && (
+
+                    {provider.status === "active" && (
                       <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                         <span>⭐ {provider.rating}/5.0</span>
                         <span>• {provider.totalJobs} trabalhos</span>
@@ -239,7 +259,7 @@ export default function AdminPrestadores() {
                     )}
                   </div>
                 </div>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -249,22 +269,22 @@ export default function AdminPrestadores() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem>Ver Perfil Completo</DropdownMenuItem>
                     <DropdownMenuItem>Ver Avaliações</DropdownMenuItem>
-                    {provider.status === 'active' ? (
-                      <DropdownMenuItem 
+                    {provider.status === "active" ? (
+                      <DropdownMenuItem
                         className="text-error"
                         onClick={() => {
                           setSelectedProvider(provider);
-                          setActionDialog({ open: true, action: 'deactivate' });
+                          setActionDialog({ open: true, action: "deactivate" });
                         }}
                       >
                         Desativar Prestador
                       </DropdownMenuItem>
                     ) : (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         className="text-success"
                         onClick={() => {
                           setSelectedProvider(provider);
-                          setActionDialog({ open: true, action: 'activate' });
+                          setActionDialog({ open: true, action: "activate" });
                         }}
                       >
                         Ativar Prestador
@@ -289,41 +309,43 @@ export default function AdminPrestadores() {
       )}
 
       {/* Action Dialog */}
-      <Dialog 
-        open={actionDialog.open} 
+      <Dialog
+        open={actionDialog.open}
         onOpenChange={(open) => setActionDialog({ open, action: null })}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {actionDialog.action === 'activate' ? 'Ativar' : 'Desativar'} Prestador
+              {actionDialog.action === "activate" ? "Ativar" : "Desativar"}{" "}
+              Prestador
             </DialogTitle>
             <DialogDescription>
-              {actionDialog.action === 'activate' 
+              {actionDialog.action === "activate"
                 ? `Tem certeza que deseja ativar o prestador ${selectedProvider?.name}? Ele poderá receber novos trabalhos.`
-                : `Tem certeza que deseja desativar o prestador ${selectedProvider?.name}? Ele não aparecerá mais nas buscas.`
-              }
+                : `Tem certeza que deseja desativar o prestador ${selectedProvider?.name}? Ele não aparecerá mais nas buscas.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setActionDialog({ open: false, action: null })}
             >
               Cancelar
             </Button>
             <Button
-              variant={actionDialog.action === 'activate' ? 'default' : 'destructive'}
+              variant={
+                actionDialog.action === "activate" ? "default" : "destructive"
+              }
               onClick={() => {
                 if (selectedProvider && actionDialog.action) {
                   handleStatusChange(
-                    selectedProvider.id, 
-                    actionDialog.action === 'activate' ? 'active' : 'inactive'
+                    selectedProvider.id,
+                    actionDialog.action === "activate" ? "active" : "inactive"
                   );
                 }
               }}
             >
-              {actionDialog.action === 'activate' ? (
+              {actionDialog.action === "activate" ? (
                 <>
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Ativar
