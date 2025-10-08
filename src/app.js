@@ -7,6 +7,7 @@ const healthRoutes = require("./routes/health.routes");
 const servicesRoutes = require("./routes/services.routes");
 const authRoutes = require("./routes/auth.routes");
 const providersRoutes = require("./routes/providers.routes");
+const usersRoutes = require("./routes/users.routes");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
@@ -25,6 +26,8 @@ app.use("/providers", providersRoutes);
 app.use("/auth", authRoutes);
 app.use("/auth/login", authRoutes);
 app.use("/orders", require("./routes/orders.routes"));
+app.use("/users", usersRoutes);
+
 
 app.use(errorHandler);
 

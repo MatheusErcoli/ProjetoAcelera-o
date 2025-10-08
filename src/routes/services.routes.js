@@ -1,7 +1,9 @@
 const { Router } = require("express");
-const { listServices } = require("../controllers/services.controller");
+const servicesController = require("../controllers/services.controller");
 const router = Router();
 
-router.get("/", listServices);
+router.post("/", servicesController.createService);
+router.get("/", servicesController.getServices);
+router.put("/:id", servicesController.updateServices);
 
 module.exports = router;
