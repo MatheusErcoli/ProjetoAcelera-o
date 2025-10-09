@@ -15,7 +15,7 @@ module.exports = {
       } = req.body;
 
       // Basic validation
-      if (!name || !email || !whatsapp || !password) {
+      if (!name || !email || !whatsapp || !photo_url || !password) {
         return res.status(400).json({ message: "Campos obrigatórios faltando" });
       }
 
@@ -40,8 +40,8 @@ module.exports = {
             name,
             email,
             whatsapp,
-            photo_url: photo_url || '/placeholder-avatar.png',
-            role: role || 'CONTRATANTE',
+            photo_url,
+            role: role || undefined,
             password_hash,
           },
           { transaction: t }
@@ -229,8 +229,6 @@ module.exports = {
   },
 
   async deleteUser(req, res) {
-
-    
     return res.status(501).json({ message: "Não implementado" });
   },
 };

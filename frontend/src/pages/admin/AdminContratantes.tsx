@@ -110,20 +110,6 @@ const toggleContratanteStatus = async (id: number, isActive: boolean): Promise<C
   return data;
 };
 
-const deleteContratante = async (id: number): Promise<void> => {
-  const response = await fetch(`${apiUrl}/users/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Erro ao excluir contratante');
-  }
-};
-
 // Componente para formulário de criação/edição de contratante
 interface ContratanteFormProps {
   initialData?: Contratante;
@@ -360,7 +346,6 @@ const AdminContratantes = () => {
   // Estados para modais
   const [createDialog, setCreateDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
-  const [deleteDialog, setDeleteDialog] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
@@ -464,23 +449,6 @@ const AdminContratantes = () => {
     } catch (error) {
       console.error('Erro ao atualizar contratante:', error);
       alert(error instanceof Error ? error.message : 'Erro ao atualizar contratante');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDeleteContratante = async () => {
-    if (!selectedContratante) return;
-    
-    try {
-      setActionLoading(true);
-      await deleteContratante(selectedContratante.id);
-      setContratantes(contratantes.filter(contratante => contratante.id !== selectedContratante.id));
-      setDeleteDialog(false);
-      setSelectedContratante(null);
-    } catch (error) {
-      console.error('Erro ao excluir contratante:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao excluir contratante');
     } finally {
       setActionLoading(false);
     }
@@ -695,17 +663,6 @@ const AdminContratantes = () => {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-destructive"
-                        onClick={() => {
-                          setSelectedContratante(contratante);
-                          setDeleteDialog(true);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -762,44 +719,6 @@ const AdminContratantes = () => {
                 setSelectedContratante(null);
               }}
             />
-          </div>
-        </div>
-      )}
-
-      {/* Delete Contratante Dialog */}
-      {deleteDialog && selectedContratante && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2 text-destructive">
-                Excluir Contratante
-              </h2>
-              <p className="text-gray-600">
-                Tem certeza que deseja excluir o contratante <strong>{selectedContratante.name}</strong>? 
-                Esta ação não pode ser desfeita.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDeleteDialog(false);
-                  setSelectedContratante(null);
-                }}
-                disabled={actionLoading}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeleteContratante}
-                disabled={actionLoading}
-                className="flex-1"
-              >
-                {actionLoading ? "Excluindo..." : "Excluir"}
-              </Button>
-            </div>
           </div>
         </div>
       )}
