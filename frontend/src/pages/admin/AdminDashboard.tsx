@@ -5,11 +5,58 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 const recentActivities = [
-  
+  {
+    id: 1,
+    type: "new_provider",
+    message: "Novo prestador cadastrado: João da Silva (Encanador)",
+    time: "há 2 horas",
+    status: "pending"
+  },
+  {
+    id: 2, 
+    type: "new_review",
+    message: "Nova avaliação: Maria Santos avaliou Carlos Eletricista",
+    time: "há 4 horas",
+    status: "active"
+  },
+  {
+    id: 3,
+    type: "service_request",
+    message: "Solicitação de novo serviço: 'Instalação de Split'",
+    time: "há 6 horas", 
+    status: "pending"
+  },
+  {
+    id: 4,
+    type: "provider_update",
+    message: "Prestador Pedro Pedreiro atualizou perfil",
+    time: "há 1 dia",
+    status: "active"
+  }
 ];
 
 const pendingReviews = [
-  
+  {
+    id: 1,
+    provider: "João Encanador",
+    client: "Maria Silva",
+    service: "Reparo de vazamento",
+    date: "15/01/2024"
+  },
+  {
+    id: 2,
+    provider: "Carlos Eletricista", 
+    client: "Pedro Santos",
+    service: "Instalação elétrica",
+    date: "14/01/2024"
+  },
+  {
+    id: 3,
+    provider: "Ana Pintora",
+    client: "José Costa",
+    service: "Pintura residencial", 
+    date: "13/01/2024"
+  }
 ];
 
 export default function AdminDashboard() {
@@ -20,12 +67,12 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">
-            Visão geral do PrestadoresClimber
+            Visão geral do ServicesClimber
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        {/* <Button className="bg-primary hover:bg-primary/90">
           Relatório Completo
-        </Button>
+        </Button> */}
       </div>
 
       {/* Stats Grid */}
@@ -126,7 +173,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions
       <Card className="card-shadow">
         <CardHeader>
           <CardTitle>Ações Rápidas</CardTitle>
@@ -151,7 +198,7 @@ export default function AdminDashboard() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }

@@ -11,7 +11,7 @@ const Index = () => {
         <div className="">
           <div className="container mx-auto px-6 text-center">
             <h1 className="text-5xl font-bold text-dark-blue mb-6">
-              PrestadoresClimber
+              ServicesClimber
             </h1>
             <p className="text-xl text-dark-blue/80 mb-8 max-w-2xl mx-auto">
               Conectando você aos melhores prestadores de serviços de Campo Mourão e região

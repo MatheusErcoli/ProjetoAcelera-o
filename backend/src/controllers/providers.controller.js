@@ -20,7 +20,7 @@ exports.listProviders = async (req, res, next) => {
         model: Service,
         as: "services",
         required: !!serviceId,
-        where: serviceId ? { id: serviceId, is_active: true } : undefined,
+        where: serviceId ? { id: serviceId } : undefined,
         through: { attributes: [] },
       },
       {
@@ -28,7 +28,7 @@ exports.listProviders = async (req, res, next) => {
         as: "availability",
         required: !!weekday,
         where: weekday
-          ? { weekday: Number(weekday), is_active: true }
+          ? { weekday: Number(weekday) }
           : undefined,
       },
     ];
@@ -49,7 +49,7 @@ exports.getProviderById = async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const row = await User.findOne({
-      where: { id, role: "PRESTADOR", is_active: true },
+      where: { id, role: "PRESTADOR" },
       include: [
         { model: Address, as: "address" },
         { model: Service, as: "services", through: { attributes: [] } },

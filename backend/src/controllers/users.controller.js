@@ -1,4 +1,4 @@
-const { User, Address } = require("../models");
+const { User, Address, Service } = require("../models");
 const bcrypt = require("bcrypt");
 
 module.exports = {
@@ -84,12 +84,43 @@ module.exports = {
 
   async getUser(req, res) {
     try {
+      // Buscar todos os usuários primeiro
       const users = await User.findAll({
-        where: { is_active: true },
-        include: [{ model: Address, as: "address" }],
+        attributes: { exclude: ["password_hash"] },
+        include: [
+          { model: Address, as: "address" }
+        ],
         order: [["id", "ASC"]],
       });
-      return res.json(users);
+
+      // Para cada usuário, buscar serviços apenas se for prestador
+      const usersWithServices = await Promise.all(
+        users.map(async (user) => {
+          const userData = user.toJSON();
+          
+          if (user.role === 'PRESTADOR') {
+            // Buscar serviços apenas para prestadores
+            const userWithServices = await User.findByPk(user.id, {
+              attributes: { exclude: ["password_hash"] },
+              include: [
+                { model: Address, as: "address" },
+                {
+                  model: Service, 
+                  as: "services", 
+                  through: { attributes: [] },
+                  required: false
+                }
+              ]
+            });
+            return userWithServices.toJSON();
+          }
+          
+          // Para não prestadores, retornar sem o campo services
+          return userData;
+        })
+      );
+
+      return res.json(usersWithServices);
 
     } catch (err) {
       console.error(err);
@@ -105,7 +136,7 @@ module.exports = {
       }
 
       const user = await User.findOne({
-        where: { id, is_active: true },
+        where: { id },
         attributes: { exclude: ["password_hash"] },
         include: [{ model: Address, as: "address" }],
       });

@@ -25,7 +25,6 @@ module.exports = {
   async getServices(req, res, next) {
     try {
       const services = await Service.findAll({
-        where: { is_active: true },
         order: [["id", "ASC"]],
       });
       return res.json(services);
