@@ -61,7 +61,7 @@ const createContratante = async (contratanteData: Partial<Contratante>): Promise
     },
     body: JSON.stringify({
       ...contratanteData,
-      role: 'CLIENTE',
+      role: 'CONTRATANTE',
     }),
   });
   

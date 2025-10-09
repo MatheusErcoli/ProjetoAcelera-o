@@ -15,7 +15,7 @@ module.exports = {
       } = req.body;
 
       // Basic validation
-      if (!name || !email || !whatsapp || !photo_url || !password) {
+      if (!name || !email || !whatsapp || !password) {
         return res.status(400).json({ message: "Campos obrigatórios faltando" });
       }
 
@@ -40,8 +40,8 @@ module.exports = {
             name,
             email,
             whatsapp,
-            photo_url,
-            role: role || undefined,
+            photo_url: photo_url || '/placeholder-avatar.png',
+            role: role || 'CONTRATANTE',
             password_hash,
           },
           { transaction: t }
