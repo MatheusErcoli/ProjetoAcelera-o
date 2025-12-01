@@ -9,7 +9,8 @@ const PORT = process.env.PORT || 3000;
     console.log("DB conectado");
     app.listen(PORT, () => console.log(`API on http://localhost:${PORT}`));
   } catch (err) {
-    console.error("Falha ao iniciar:", err.message);
+    console.error("Falha ao iniciar:", err);
+    if (err && err.stack) console.error(err.stack);
     process.exit(1);
   }
 })();
