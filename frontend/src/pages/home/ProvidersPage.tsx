@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiUrl } from "@/config/api";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   Star,
@@ -111,6 +113,8 @@ const weekdays = [
 
 const ProvidersPage = () => {
   const { toast } = useToast();
+  const { logout, user } = useAuthContext();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProviderProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -198,9 +202,8 @@ const ProvidersPage = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("providerId");
-    window.location.href = "/";
+    logout();
+    navigate('/');
   };
 
   const handleAddAvailability = async () => {

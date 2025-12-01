@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/hooks/useAuth';
+import { useRegister } from '@/hooks/useRegister';
 import {
   validateEmail,
   validatePassword,
@@ -17,6 +17,7 @@ import {
 import { fetchAddressByCep } from './cepService';
 import './styles.css';
 import { apiUrl } from '@/config/api';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FormData {
   name: string;
@@ -253,9 +254,37 @@ export default function RegisterPage() {
       });
 
       setAlert({ type: 'success', message: 'Cadastro realizado com sucesso!' });
+      
+      // Redirecionar baseado no tipo de usuário
       setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+          // Buscar informações do usuário para determinar redirecionamento
+          fetch(`${apiUrl}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${storedToken}` }
+          })
+            .then(res => res.json())
+            .then(userData => {
+              switch (userData.role) {
+                case 'ADMIN':
+                  navigate('/admin');
+                  break;
+                case 'PRESTADOR':
+                  localStorage.setItem('providerId', userData.id);
+                  navigate('/home/providers');
+                  break;
+                case 'CONTRATANTE':
+                  navigate('/home/clients');
+                  break;
+                default:
+                  navigate('/');
+              }
+            })
+            .catch(() => navigate('/login'));
+        } else {
+          navigate('/login');
+        }
+      }, 1500);
     } catch (error: any) {
       setAlert({
         type: 'error',

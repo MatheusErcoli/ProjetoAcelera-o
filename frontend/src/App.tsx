@@ -5,6 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -38,65 +40,79 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
 
-            <Route path="/login" 
-              element={<LoginPage />} 
-            />
+              <Route path="/login" 
+                element={<LoginPage />} 
+              />
 
-            <Route 
-              path="/register" 
-              element={<RegisterPage/>} 
-            />
+              <Route 
+                path="/register" 
+                element={<RegisterPage/>} 
+              />
 
-            <Route
-              path="/admin"
-              element={
-                <AdminLayout>
-                  <AdminDashboard />
-                </AdminLayout>
-              }
-            />
-            <Route
-              path="/admin/prestadores"
-              element={
-                <AdminLayout>
-                  <AdminPrestadores />
-                </AdminLayout>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route
-              path="/admin/contratantes"
-              element={
-                <AdminLayout>
-                  <AdminContratantes />
-                </AdminLayout>
-              } 
-            />
+              {/* Rotas Admin - Apenas ADMIN */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <AdminLayout>
+                      <AdminDashboard />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/prestadores"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <AdminLayout>
+                      <AdminPrestadores />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/contratantes"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <AdminLayout>
+                      <AdminContratantes />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
 
-            <Route
-              path="/home/providers"
-              element={
-                <ProvidersPage />
-              } 
-            />
+              {/* Rota Prestador - Apenas PRESTADOR */}
+              <Route
+                path="/home/providers"
+                element={
+                  <ProtectedRoute allowedRoles={['PRESTADOR']}>
+                    <ProvidersPage />
+                  </ProtectedRoute>
+                } 
+              />
 
-            <Route
-              path="/home/clients"
-              element={
-                <ClientsPage />
-              } 
-            />
+              {/* Rota Cliente - Apenas CONTRATANTE */}
+              <Route
+                path="/home/clients"
+                element={
+                  <ProtectedRoute allowedRoles={['CONTRATANTE']}>
+                    <ClientsPage />
+                  </ProtectedRoute>
+                } 
+              />
 
-            <Route
-              path="*"
-              element={
-                <NotFound />
-              } 
-            />
-          </Routes>
+              <Route
+                path="*"
+                element={
+                  <NotFound />
+                } 
+              />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

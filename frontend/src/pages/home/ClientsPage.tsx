@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiUrl } from "@/config/api";
 import { Search, Star, MapPin, Phone, Calendar, LogOut, User, Menu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   Sheet,
   SheetContent,
@@ -72,6 +74,8 @@ const weekdays = [
 
 const ClientsPage = () => {
   const { toast } = useToast();
+  const { logout, user } = useAuthContext();
+  const navigate = useNavigate();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
@@ -135,9 +139,8 @@ const ClientsPage = () => {
   };
 
   const handleLogout = () => {
-    // Implementar logout
-    localStorage.removeItem("token");
-    window.location.href = "/";
+    logout();
+    navigate('/');
   };
 
   const filteredProviders = providers.filter((provider) =>

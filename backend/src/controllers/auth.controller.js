@@ -111,3 +111,27 @@ module.exports.register = async (req, res) => {
     res.status(500).json({ message: "Erro interno no servidor" });
   }
 };
+
+module.exports.me = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: ['id', 'name', 'email', 'role', 'whatsapp', 'photo_url']
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      whatsapp: user.whatsapp,
+      photo_url: user.photo_url
+    });
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error);
+    res.status(500).json({ message: "Erro interno no servidor" });
+  }
+};

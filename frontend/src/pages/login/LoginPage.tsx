@@ -5,13 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { apiUrl } from '@/config/api';
 import { validateEmail, validatePassword } from './validations';
 import './styles.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading } = useAuthContext();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -83,9 +84,35 @@ export default function LoginPage() {
     try {
       await login(formData.email, formData.password);
       setAlert({ type: 'success', message: 'Login realizado com sucesso!' });
+      
+      // Aguardar um pouco para o estado ser atualizado
       setTimeout(() => {
-        navigate('/');
-      }, 1500);
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+          // Buscar informações do usuário para determinar redirecionamento
+          fetch(`${apiUrl}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${storedToken}` }
+          })
+            .then(res => res.json())
+            .then(userData => {
+              switch (userData.role) {
+                case 'ADMIN':
+                  navigate('/admin');
+                  break;
+                case 'PRESTADOR':
+                  localStorage.setItem('providerId', userData.id);
+                  navigate('/home/providers');
+                  break;
+                case 'CONTRATANTE':
+                  navigate('/home/clients');
+                  break;
+                default:
+                  navigate('/');
+              }
+            })
+            .catch(() => navigate('/'));
+        }
+      }, 1000);
     } catch (error: any) {
       setAlert({
         type: 'error',
