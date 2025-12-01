@@ -1,0 +1,308 @@
+// Exemplo de uso do hook useAuth em outros componentes
+
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+
+// ============================================
+// EXEMPLO 1: Proteção de Rota
+// ============================================
+
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { token } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!token) {
+      // Se não estiver autenticado, redireciona para login
+      navigate('/login');
+    }
+  }, [token, navigate]);
+
+  if (!token) {
+    return null; // ou um loading spinner
+  }
+
+  return <>{children}</>;
+}
+
+// Uso:
+// <ProtectedRoute>
+//   <MinhaPaginaProtegida />
+// </ProtectedRoute>
+
+
+// ============================================
+// EXEMPLO 2: Navbar com Logout
+// ============================================
+
+export function Navbar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  return (
+    <nav>
+      {user ? (
+        <div>
+          <span>Olá, {user.name}</span>
+          <button onClick={handleLogout}>Sair</button>
+        </div>
+      ) : (
+        <div>
+          <a href="/login">Entrar</a>
+          <a href="/register">Cadastrar</a>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+
+// ============================================
+// EXEMPLO 3: Requisição Autenticada
+// ============================================
+
+export function MyProfile() {
+  const { token } = useAuth();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const response = await fetch(`${apiUrl}/users/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const data = await response.json();
+      setProfile(data);
+    };
+
+    if (token) {
+      fetchProfile();
+    }
+  }, [token]);
+
+  return (
+    <div>
+      {profile && (
+        <div>
+          <h1>{profile.name}</h1>
+          <p>{profile.email}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ============================================
+// EXEMPLO 4: Verificar Tipo de Usuário
+// ============================================
+
+export function DashboardSelector() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <div>Carregando...</div>;
+  }
+
+  if (user.role === 'prestador') {
+    return <PrestadorDashboard />;
+  } else if (user.role === 'contratante') {
+    return <ContratanteDashboard />;
+  } else if (user.role === 'admin') {
+    return <AdminDashboard />;
+  }
+
+  return <div>Tipo de usuário desconhecido</div>;
+}
+
+
+// ============================================
+// EXEMPLO 5: Context Provider (Recomendado)
+// ============================================
+
+import { createContext, useContext, useState, useEffect } from 'react';
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Carrega dados do usuário ao iniciar
+  useEffect(() => {
+    const loadUser = async () => {
+      if (token) {
+        try {
+          const response = await fetch(`${apiUrl}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+          } else {
+            // Token inválido, remove
+            localStorage.removeItem('token');
+            setToken(null);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar usuário:', error);
+        }
+      }
+    };
+
+    loadUser();
+  }, [token]);
+
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao fazer login');
+      }
+
+      const data = await response.json();
+      
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+      }
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (data: RegisterData) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${apiUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao registrar usuário');
+      }
+
+      const responseData = await response.json();
+      
+      if (responseData.token) {
+        localStorage.setItem('token', responseData.token);
+        setToken(responseData.token);
+        setUser(responseData.user);
+      }
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth deve ser usado dentro de AuthProvider');
+  }
+  return context;
+};
+
+// Uso no App.tsx:
+// <AuthProvider>
+//   <BrowserRouter>
+//     <Routes>...</Routes>
+//   </BrowserRouter>
+// </AuthProvider>
+
+
+// ============================================
+// EXEMPLO 6: Interceptor para Requisições
+// ============================================
+
+export const api = {
+  async fetch(url: string, options: RequestInit = {}) {
+    const token = localStorage.getItem('token');
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    };
+
+    const response = await fetch(`${apiUrl}${url}`, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401) {
+      // Token expirado ou inválido
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+      throw new Error('Sessão expirada');
+    }
+
+    return response;
+  },
+
+  async get(url: string) {
+    return this.fetch(url, { method: 'GET' });
+  },
+
+  async post(url: string, data: any) {
+    return this.fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async put(url: string, data: any) {
+    return this.fetch(url, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(url: string) {
+    return this.fetch(url, { method: 'DELETE' });
+  },
+};
+
+// Uso:
+// const response = await api.get('/users/profile');
+// const data = await response.json();

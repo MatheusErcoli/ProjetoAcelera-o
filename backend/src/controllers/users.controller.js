@@ -1,4 +1,4 @@
-const { User, Address, Service } = require("../models");
+const { User, Address, Service, ProviderService } = require("../models");
 const bcrypt = require("bcrypt");
 
 module.exports = {
@@ -12,6 +12,7 @@ module.exports = {
         role,
         password,
         address,
+        services,
       } = req.body;
 
       // Basic validation
@@ -62,13 +63,38 @@ module.exports = {
           );
         }
 
+        // Se é um prestador e tem serviços, associá-los
+        if ((role === "PRESTADOR" || !role) && services && Array.isArray(services) && services.length > 0) {
+          // Validar que os serviços existem
+          const serviceIds = services.map(s => typeof s === 'object' ? s.id : s);
+          const existingServices = await Service.findAll({
+            where: { id: serviceIds },
+            transaction: t
+          });
+
+          if (existingServices.length !== serviceIds.length) {
+            throw new Error("Um ou mais serviços não existem");
+          }
+
+          // Criar as associações
+          await newUser.addServices(serviceIds, { transaction: t });
+        }
+
         return newUser;
       });
 
-      // Reload with address to return
+      // Reload with address and services to return
       const created = await User.findByPk(result.id, {
         attributes: { exclude: ["password_hash"] },
-        include: [{ model: Address, as: "address" }],
+        include: [
+          { model: Address, as: "address" },
+          { 
+            model: Service, 
+            as: "services", 
+            through: { attributes: [] },
+            required: false
+          }
+        ],
       });
 
       return res.status(201).json(created);
@@ -168,6 +194,7 @@ module.exports = {
         is_active,
         password,
         address,
+        services,
       } = req.body;
 
       const user = await User.findByPk(id);
@@ -214,11 +241,41 @@ module.exports = {
             await user.createAddress(addrPayload, { transaction: t });
           }
         }
+
+        // Atualizar serviços se fornecidos e o usuário for prestador
+        if (services !== undefined && (user.role === "PRESTADOR" || role === "PRESTADOR")) {
+          if (Array.isArray(services)) {
+            const serviceIds = services.map(s => typeof s === 'object' ? s.id : s);
+            
+            // Validar que os serviços existem
+            if (serviceIds.length > 0) {
+              const existingServices = await Service.findAll({
+                where: { id: serviceIds },
+                transaction: t
+              });
+
+              if (existingServices.length !== serviceIds.length) {
+                throw new Error("Um ou mais serviços não existem");
+              }
+            }
+
+            // Substituir todos os serviços
+            await user.setServices(serviceIds, { transaction: t });
+          }
+        }
       });
 
       const updated = await User.findByPk(id, {
         attributes: { exclude: ["password_hash"] },
-        include: [{ model: Address, as: "address" }],
+        include: [
+          { model: Address, as: "address" },
+          { 
+            model: Service, 
+            as: "services", 
+            through: { attributes: [] },
+            required: false
+          }
+        ],
       });
 
       return res.json(updated);

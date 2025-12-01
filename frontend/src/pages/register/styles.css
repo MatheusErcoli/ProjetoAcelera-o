@@ -1,0 +1,177 @@
+:root {
+  --primary-blue: #87ceeb;
+  --light-blue: #e0f6ff;
+  --dark-blue: #4682b4;
+  --white: #ffffff;
+  --light-gray: #f8f9fa;
+  --gray: #6c757d;
+  --dark-gray: #495057;
+  --success: #28a745;
+  --error: #dc3545;
+  --shadow: rgba(70, 130, 180, 0.1);
+  --shadow-hover: rgba(70, 130, 180, 0.2);
+}
+
+.register-card {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.user-type-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  background: var(--light-gray);
+  padding: 6px;
+  border-radius: 12px;
+}
+
+.type-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.type-btn:hover {
+  background: rgba(135, 206, 235, 0.1);
+  color: var(--dark-blue);
+}
+
+.type-btn.active {
+  background: var(--white);
+  color: var(--dark-blue);
+  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.15);
+}
+
+.type-icon {
+  font-size: 24px;
+}
+
+.type-text {
+  font-weight: 600;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.form-section {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  background: rgba(224, 246, 255, 0.3);
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideInUp 0.5s ease-out forwards;
+}
+
+.form-section:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.form-section:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.form-section:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+.section-title {
+  color: var(--dark-blue);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--primary-blue);
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+.form-row .form-group {
+  margin-bottom: 0;
+}
+
+.form-group.flex-1 {
+  flex: 1;
+}
+
+.form-group.flex-2 {
+  flex: 2;
+}
+
+@keyframes slideInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .register-card {
+    max-width: 100%;
+    padding: 30px 20px;
+    max-height: 95vh;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .form-row .form-group {
+    margin-bottom: 20px;
+  }
+
+  .user-type-selector {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .type-btn {
+    flex-direction: row;
+    justify-content: center;
+    padding: 12px 16px;
+  }
+
+  .type-icon {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-header h1 {
+    font-size: 24px;
+  }
+
+  .form-section {
+    padding: 15px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+}

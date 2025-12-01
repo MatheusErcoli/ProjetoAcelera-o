@@ -1,39 +1,13 @@
 import { Users, UserCheck, Star, Settings, TrendingUp, AlertCircle } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
+import { useEffect, useState } from "react";
+import { apiUrl } from "@/config/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getActivities, subscribeActivity, ActivityEntry } from "@/lib/activityLog";
 
-const recentActivities = [
-  {
-    id: 1,
-    type: "new_provider",
-    message: "Novo prestador cadastrado: João da Silva (Encanador)",
-    time: "há 2 horas",
-    status: "pending"
-  },
-  {
-    id: 2, 
-    type: "new_review",
-    message: "Nova avaliação: Maria Santos avaliou Carlos Eletricista",
-    time: "há 4 horas",
-    status: "active"
-  },
-  {
-    id: 3,
-    type: "service_request",
-    message: "Solicitação de novo serviço: 'Instalação de Split'",
-    time: "há 6 horas", 
-    status: "pending"
-  },
-  {
-    id: 4,
-    type: "provider_update",
-    message: "Prestador Pedro Pedreiro atualizou perfil",
-    time: "há 1 dia",
-    status: "active"
-  }
-];
+const recentActivities = [];
 
 const pendingReviews = [
   {
@@ -60,6 +34,65 @@ const pendingReviews = [
 ];
 
 export default function AdminDashboard() {
+  const [providersCount, setProvidersCount] = useState<number | null>(null);
+  const [clientsCount, setClientsCount] = useState<number | null>(null);
+  const [servicesCount, setServicesCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchCounts() {
+      try {
+        const base = apiUrl || "";
+
+        const providersPromise = fetch(`${base}/providers`);
+        const usersPromise = fetch(`${base}/users`);
+        const servicesPromise = fetch(`${base}/services`);
+
+        const [provRes, usersRes, servicesRes] = await Promise.all([providersPromise, usersPromise, servicesPromise]);
+
+        if (!provRes.ok) throw new Error(`Providers fetch failed: ${provRes.status}`);
+        if (!usersRes.ok) throw new Error(`Users fetch failed: ${usersRes.status}`);
+        if (!servicesRes.ok) throw new Error(`Services fetch failed: ${servicesRes.status}`);
+
+        const providers = await provRes.json();
+        const users = await usersRes.json();
+        const services = await servicesRes.json();
+
+        if (!mounted) return;
+
+        setProvidersCount(Array.isArray(providers) ? providers.length : 0);
+        setClientsCount(Array.isArray(users) ? users.filter((u: any) => u.role === "CONTRATANTE").length : 0);
+        setServicesCount(Array.isArray(services) ? services.length : 0);
+      } catch (err) {
+        console.error("Error fetching admin counts:", err);
+      }
+    }
+
+    fetchCounts();
+
+    return () => { mounted = false; };
+  }, []);
+
+  // Recent activities state (hydrated from localStorage via getActivities)
+  const [recentActivitiesState, setRecentActivitiesState] = useState<ActivityEntry[]>(() => {
+    try {
+      const stored = getActivities();
+      if (stored.length) return stored;
+      // convert static fallback to ActivityEntry shape
+      return recentActivities.map((r) => ({ ...r, createdAt: new Date().toISOString() }));
+    } catch (e) {
+      return recentActivities.map((r) => ({ ...r, createdAt: new Date().toISOString() }));
+    }
+  });
+
+  useEffect(() => {
+    const unsubscribe = subscribeActivity((entry) => {
+      setRecentActivitiesState((prev) => [entry, ...prev].slice(0, 10));
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -79,31 +112,27 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total de Prestadores"
-          value={156}
-          description="12 aguardando aprovação"
+          value={providersCount ?? '—'}
+          description="Prestadores ativos"
           icon={UserCheck}
-          trend={{ value: 8.2, isPositive: true }}
         />
         <StatCard
           title="Total de Contratantes"
-          value={423}
+          value={clientsCount ?? '—'}
           description="Usuários ativos"
           icon={Users}
-          trend={{ value: 12.5, isPositive: true }}
         />
         <StatCard
           title="Avaliações Pendentes"
           value={23}
           description="Precisam de moderação"
           icon={Star}
-          trend={{ value: -5.1, isPositive: false }}
         />
         <StatCard
           title="Serviços Cadastrados"
-          value={89}
+          value={servicesCount ?? '—'}
           description="Categorias ativas"
           icon={Settings}
-          trend={{ value: 3.2, isPositive: true }}
         />
       </div>
 
@@ -119,19 +148,13 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivities.map((activity) => (
+              {recentActivitiesState.map((activity) => (
                 <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-accent/30">
                   <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
                   <div className="flex-1">
                     <p className="text-sm text-foreground">{activity.message}</p>
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
-                  <Badge 
-                    variant={activity.status === 'pending' ? 'destructive' : 'default'}
-                    className="text-xs"
-                  >
-                    {activity.status === 'pending' ? 'Pendente' : 'Ativo'}
-                  </Badge>
                 </div>
               ))}
             </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { addActivity } from "@/lib/activityLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -413,6 +414,11 @@ const AdminContratantes = () => {
           ? { ...contratante, is_active: newStatus }
           : contratante
       ));
+      // Log activation/deactivation
+      try {
+        const name = contratantes.find(c => c.id === id)?.name || String(id);
+        addActivity({ type: newStatus ? 'client_activated' : 'client_deactivated', message: `Contratante ${name} ${newStatus ? 'ativado' : 'desativado'}`, status: newStatus ? 'active' : 'inactive' });
+      } catch (e) {}
     } catch (error) {
       console.error('Erro ao alterar status do contratante:', error);
       alert(error instanceof Error ? error.message : 'Erro ao alterar status do contratante');
@@ -426,6 +432,8 @@ const AdminContratantes = () => {
       setActionLoading(true);
       const newContratante = await createContratante(data);
       setContratantes([...contratantes, newContratante]);
+      // Log creation
+      try { addActivity({ type: 'new_client', message: `Novo contratante cadastrado: ${newContratante.name}`, status: newContratante.is_active ? 'active' : 'inactive' }); } catch (e) {}
       setCreateDialog(false);
     } catch (error) {
       console.error('Erro ao criar contratante:', error);
@@ -444,6 +452,8 @@ const AdminContratantes = () => {
       setContratantes(contratantes.map(contratante =>
         contratante.id === selectedContratante.id ? updatedContratante : contratante
       ));
+      // Log update
+      try { addActivity({ type: 'client_update', message: `Contratante ${updatedContratante.name} atualizado`, status: updatedContratante.is_active ? 'active' : 'inactive' }); } catch (e) {}
       setEditDialog(false);
       setSelectedContratante(null);
     } catch (error) {
@@ -635,8 +645,7 @@ const AdminContratantes = () => {
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={contratante.is_active ? "default" : "destructive"}
-                      className="cursor-pointer"
+                      className={`${contratante.is_active ? "hover:bg-green-700 bg-green-600" : "hover:bg-red-700 bg-red-600"} cursor-pointer"}`}
                       onClick={() => toggleUserStatus(contratante.id, contratante.is_active)}
                     >
                       {contratante.is_active ? "Ativo" : "Inativo"}

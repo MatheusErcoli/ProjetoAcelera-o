@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { addActivity } from "@/lib/activityLog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -168,6 +169,7 @@ function ProviderForm({ initialData, onSubmit, onCancel, loading }: ProviderForm
     whatsapp: initialData?.whatsapp || "",
     photo_url: initialData?.photo_url || "",
     password: "",
+    services: initialData?.services?.map(s => s.id) || [],
     address: {
       logradouro: initialData?.address?.logradouro || "",
       numero: initialData?.address?.numero || "",
@@ -178,6 +180,20 @@ function ProviderForm({ initialData, onSubmit, onCancel, loading }: ProviderForm
       uf: initialData?.address?.uf || "",
     }
   });
+
+  const [availableServices, setAvailableServices] = useState<Service[]>([]);
+
+  useEffect(() => {
+    // Buscar serviços disponíveis
+    fetch(`${apiUrl}/services`)
+      .then(res => res.json())
+      .then(data => {
+        setAvailableServices(data.filter((s: any) => s.is_active));
+      })
+      .catch(err => {
+        console.error("Erro ao buscar serviços:", err);
+      });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,7 +214,8 @@ function ProviderForm({ initialData, onSubmit, onCancel, loading }: ProviderForm
       email: formData.email.trim(),
       whatsapp: formData.whatsapp.trim(),
       photo_url: formData.photo_url.trim() || null,
-      address: formData.address
+      address: formData.address,
+      services: formData.services
     };
 
     if (!initialData && formData.password.trim()) {
@@ -269,6 +286,48 @@ function ProviderForm({ initialData, onSubmit, onCancel, loading }: ProviderForm
           />
         </div>
       )}
+
+      <div className="space-y-2">
+        <Label>Serviços Oferecidos</Label>
+        <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
+          {availableServices.length === 0 ? (
+            <p className="text-sm text-gray-500">Carregando serviços...</p>
+          ) : (
+            availableServices.map((service) => (
+              <div key={service.id} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={`service-${service.id}`}
+                  checked={formData.services.includes(service.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData({
+                        ...formData,
+                        services: [...formData.services, service.id]
+                      });
+                    } else {
+                      setFormData({
+                        ...formData,
+                        services: formData.services.filter(id => id !== service.id)
+                      });
+                    }
+                  }}
+                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                />
+                <Label
+                  htmlFor={`service-${service.id}`}
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  {service.name}
+                </Label>
+              </div>
+            ))
+          )}
+        </div>
+        <p className="text-xs text-gray-500">
+          Selecione os serviços que este prestador oferece
+        </p>
+      </div>
 
       <div className="space-y-3">
         <Label>Endereço</Label>
@@ -447,6 +506,7 @@ export default function AdminPrestadores() {
       await toggleProviderStatus(providerId, isActive);
       
       // Atualizar o estado local
+      const providerName = providers.find(p => p.id === providerId)?.name || String(providerId);
       setProviders(
         providers.map((provider) =>
           provider.id === providerId
@@ -454,6 +514,8 @@ export default function AdminPrestadores() {
             : provider
         )
       );
+      // Log activation/deactivation
+      try { addActivity({ type: isActive ? 'provider_activated' : 'provider_deactivated', message: `Prestador ${providerName} ${isActive ? 'ativado' : 'desativado'}`, status: newStatus }); } catch (e) {}
       
       setActionDialog({ open: false, action: null });
       setSelectedProvider(null);
@@ -467,9 +529,9 @@ export default function AdminPrestadores() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="status-active">Ativo</Badge>;
+        return <Badge className="status-active bg-green-500">Ativo</Badge>;
       case "inactive":
-        return <Badge className="status-inactive">Inativo</Badge>;
+        return <Badge className="status-inactive bg-red-600">Inativo</Badge>;
       case "pending":
         return <Badge variant="secondary">Pendente</Badge>;
       default:
@@ -688,18 +750,20 @@ export default function AdminPrestadores() {
             </div>
             <ProviderForm 
               onSubmit={async (data) => {
-                try {
-                  setLoading(true);
-                  const newProvider = await createProvider(data);
-                  setProviders([...providers, newProvider]);
-                  setCreateDialog(false);
-                } catch (error) {
-                  console.error('Erro ao criar prestador:', error);
-                  alert(error instanceof Error ? error.message : 'Erro ao criar prestador');
-                } finally {
-                  setLoading(false);
-                }
-              }}
+                  try {
+                    setLoading(true);
+                    const newProvider = await createProvider(data);
+                    setProviders([...providers, newProvider]);
+                    // Log creation
+                    try { addActivity({ type: 'new_provider', message: `Novo prestador cadastrado: ${newProvider.name}`, status: newProvider.status }); } catch (e) {/* ignore */}
+                    setCreateDialog(false);
+                  } catch (error) {
+                    console.error('Erro ao criar prestador:', error);
+                    alert(error instanceof Error ? error.message : 'Erro ao criar prestador');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
               loading={loading}
               onCancel={() => setCreateDialog(false)}
             />
@@ -725,6 +789,8 @@ export default function AdminPrestadores() {
                     setLoading(true);
                     const updatedProvider = await updateProvider(selectedProvider.id, data);
                     setProviders(providers.map(p => p.id === selectedProvider.id ? updatedProvider : p));
+                    // Log update
+                    try { addActivity({ type: 'provider_update', message: `Prestador ${updatedProvider.name} atualizado`, status: updatedProvider.status }); } catch (e) {}
                     setEditDialog(false);
                     setSelectedProvider(null);
                   } catch (error) {

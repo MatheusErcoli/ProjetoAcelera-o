@@ -27,19 +27,25 @@ const Index = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 justify-center">
                   <UserCheck className="w-5 h-5 text-primary" />
-                  Área Administrativa
+                  Área de Acesso
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Acesse o painel de controle para gerenciar prestadores, contratantes e avaliações
-                </p>
-                <Link to="/admin">
-                  <Button className="w-full">
-                    Acessar Dashboard
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
+                <div className="gap-2 flex">
+                  <Link to="/admin">
+                    <Button className="w-full">
+                      Acessar Dashboard
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+
+                  <Link to="/home">
+                    <Button className="w-full">
+                      Acessar Página Home
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </div>

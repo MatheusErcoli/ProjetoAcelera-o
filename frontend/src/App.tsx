@@ -11,6 +11,10 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPrestadores from "./pages/admin/AdminPrestadores";
 import AdminContratantes from "./pages/admin/AdminContratantes";
+import ProvidersPage from "./pages/home/ProvidersPage";
+import ClientsPage from "./pages/home/ClientsPage";
+import LoginPage from "./pages/login/LoginPage";
+import RegisterPage from "./pages/register/RegisterPage";
 
 
 const queryClient = new QueryClient();
@@ -36,6 +40,16 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+
+            <Route path="/login" 
+              element={<LoginPage />} 
+            />
+
+            <Route 
+              path="/register" 
+              element={<RegisterPage/>} 
+            />
+
             <Route
               path="/admin"
               element={
@@ -59,6 +73,20 @@ const App = () => {
                 <AdminLayout>
                   <AdminContratantes />
                 </AdminLayout>
+              } 
+            />
+
+            <Route
+              path="/home/providers"
+              element={
+                <ProvidersPage />
+              } 
+            />
+
+            <Route
+              path="/home/clients"
+              element={
+                <ClientsPage />
               } 
             />
 
