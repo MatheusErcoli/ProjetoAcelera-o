@@ -23,6 +23,10 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: 1,
       },
+      scheduled_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
       observacoes: {
         type: DataTypes.TEXT,
       },

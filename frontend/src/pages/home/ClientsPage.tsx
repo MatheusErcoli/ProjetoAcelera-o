@@ -1,14 +1,37 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { apiUrl } from "@/config/api";
-import { Search, Star, MapPin, Phone, Calendar, LogOut, User, Menu } from "lucide-react";
+import {
+  Search,
+  Star,
+  MapPin,
+  Phone,
+  Calendar,
+  LogOut,
+  User,
+  Menu,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/contexts/AuthContext";
+import BookServiceModal from "@/components/booking/BookServiceModal";
 import { useNavigate } from "react-router-dom";
 import {
   Sheet,
@@ -79,23 +102,22 @@ const ClientsPage = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
-  
-  // Filtros
+
   const [searchName, setSearchName] = useState("");
   const [selectedService, setSelectedService] = useState<string>("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedUf, setSelectedUf] = useState("");
 
-  // Modal de detalhes do prestador
-  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(
+    null
+  );
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
-  // Carregar serviços disponíveis
   useEffect(() => {
     fetchServices();
   }, []);
 
-  // Carregar prestadores ao iniciar ou quando filtros mudarem
   useEffect(() => {
     fetchProviders();
   }, [selectedService, selectedCity, selectedUf]);
@@ -122,7 +144,7 @@ const ClientsPage = () => {
       if (selectedService) url += `serviceId=${selectedService}&`;
       if (selectedCity) url += `cidade=${selectedCity}&`;
       if (selectedUf) url += `uf=${selectedUf}&`;
-      
+
       const response = await fetch(url);
       if (!response.ok) throw new Error("Erro ao carregar prestadores");
       const data = await response.json();
@@ -140,7 +162,7 @@ const ClientsPage = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
   const filteredProviders = providers.filter((provider) =>
@@ -162,9 +184,7 @@ const ClientsPage = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-primary">
-              ServicesClimber
-            </h1>
+            <h1 className="text-2xl font-bold text-primary">ServicesClimber</h1>
             <div className="flex items-center gap-4">
               <Sheet>
                 <SheetTrigger asChild>
@@ -175,9 +195,7 @@ const ClientsPage = () => {
                 <SheetContent>
                   <SheetHeader>
                     <SheetTitle>Minha Conta</SheetTitle>
-                    <SheetDescription>
-                      Área do Contratante
-                    </SheetDescription>
+                    <SheetDescription>Área do Contratante</SheetDescription>
                   </SheetHeader>
                   <div className="mt-6 space-y-4">
                     <Button variant="outline" className="w-full justify-start">
@@ -217,7 +235,7 @@ const ClientsPage = () => {
                 onChange={(e) => setSearchName(e.target.value)}
               />
             </div>
-            
+
             <Select value={selectedService} onValueChange={setSelectedService}>
               <SelectTrigger>
                 <SelectValue placeholder="Tipo de Serviço" />
@@ -272,11 +290,17 @@ const ClientsPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProviders.map((provider) => (
-              <Card key={provider.id} className="hover:shadow-lg transition-shadow">
+              <Card
+                key={provider.id}
+                className="hover:shadow-lg transition-shadow"
+              >
                 <CardHeader>
                   <div className="flex items-start gap-4">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage src={provider.photo_url} alt={provider.name} />
+                      <AvatarImage
+                        src={provider.photo_url}
+                        alt={provider.name}
+                      />
                       <AvatarFallback>
                         {provider.name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -418,7 +442,9 @@ const ClientsPage = () => {
               onClick={() =>
                 selectedProvider &&
                 window.open(
-                  `https://wa.me/55${formatWhatsApp(selectedProvider.whatsapp)}`,
+                  `https://wa.me/55${formatWhatsApp(
+                    selectedProvider.whatsapp
+                  )}`,
                   "_blank"
                 )
               }
@@ -426,9 +452,34 @@ const ClientsPage = () => {
               <Phone className="h-4 w-4 mr-2" />
               Entrar em Contato
             </Button>
+            <Button
+              onClick={() => {
+                if (!selectedProvider) return;
+                setShowBookingModal(true);
+              }}
+            >
+              Agendar pelo site
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Booking modal */}
+      {selectedProvider && (
+        <BookServiceModal
+          open={showBookingModal}
+          onOpenChange={setShowBookingModal}
+          provider={selectedProvider}
+          onBooked={() => {
+            toast({
+              title: "Pedido",
+              description: "Pedido enviado com sucesso",
+            });
+            // opcional: fechar detalhes
+            setShowDetailsDialog(false);
+          }}
+        />
+      )}
     </div>
   );
 };

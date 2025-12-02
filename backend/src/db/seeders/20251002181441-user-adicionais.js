@@ -6,14 +6,13 @@ module.exports = {
     const now = new Date();
     const passwordHash = await bcrypt.hash("123456", 10);
 
-    // Verificar se os usuários já existem
     const existingUsers = await queryInterface.sequelize.query(
       `SELECT email FROM users WHERE email IN ('joao@climber.com', 'maria@climber.com')`,
       { type: queryInterface.sequelize.QueryTypes.SELECT }
     );
-    
-    const existingEmails = existingUsers.map(user => user.email);
-    
+
+    const existingEmails = existingUsers.map((user) => user.email);
+
     const usersToInsert = [
       {
         name: "Prestador João",
@@ -39,7 +38,7 @@ module.exports = {
         created_at: now,
         updated_at: now,
       },
-    ].filter(user => !existingEmails.includes(user.email));
+    ].filter((user) => !existingEmails.includes(user.email));
 
     if (usersToInsert.length > 0) {
       await queryInterface.bulkInsert("users", usersToInsert);

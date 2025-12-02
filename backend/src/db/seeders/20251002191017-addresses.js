@@ -4,18 +4,19 @@ module.exports = {
   async up(queryInterface) {
     const now = new Date();
 
-    // Buscar os IDs dos usuários pelos emails para garantir que existem
     const users = await queryInterface.sequelize.query(
       `SELECT id, email FROM users WHERE email IN ('admin@climber.com', 'joao@climber.com', 'maria@climber.com')`,
       { type: queryInterface.sequelize.QueryTypes.SELECT }
     );
 
-    const admin = users.find(u => u.email === 'admin@climber.com');
-    const joao = users.find(u => u.email === 'joao@climber.com');
-    const maria = users.find(u => u.email === 'maria@climber.com');
+    const admin = users.find((u) => u.email === "admin@climber.com");
+    const joao = users.find((u) => u.email === "joao@climber.com");
+    const maria = users.find((u) => u.email === "maria@climber.com");
 
     if (!admin || !joao || !maria) {
-      console.log('Alguns usuários não foram encontrados, pulando criação de endereços');
+      console.log(
+        "Alguns usuários não foram encontrados, pulando criação de endereços"
+      );
       return;
     }
 
@@ -25,7 +26,7 @@ module.exports = {
       { type: queryInterface.sequelize.QueryTypes.SELECT }
     );
 
-    const existingUserIds = existingAddresses.map(addr => addr.user_id);
+    const existingUserIds = existingAddresses.map((addr) => addr.user_id);
 
     const addressesToInsert = [
       {
@@ -64,7 +65,7 @@ module.exports = {
         created_at: now,
         updated_at: now,
       },
-    ].filter(address => !existingUserIds.includes(address.user_id));
+    ].filter((address) => !existingUserIds.includes(address.user_id));
 
     if (addressesToInsert.length > 0) {
       await queryInterface.bulkInsert("addresses", addressesToInsert);

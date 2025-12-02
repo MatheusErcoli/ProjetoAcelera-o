@@ -72,7 +72,6 @@ if (User && Availability) {
     foreignKey: "provider_id",
     onDelete: "CASCADE",
   });
-  // ...existing code...
 }
 
 if (User && GalleryImage) {

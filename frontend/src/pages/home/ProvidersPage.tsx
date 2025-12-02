@@ -1,5 +1,12 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +51,13 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
 interface Service {
@@ -64,6 +77,7 @@ interface Order {
   id: number;
   status: string;
   created_at: string;
+  scheduled_at?: string;
   client_name: string;
   services: string[];
 }
@@ -113,7 +127,7 @@ const weekdays = [
 
 const ProvidersPage = () => {
   const { toast } = useToast();
-  const { logout, user } = useAuthContext();
+  const { logout, user, token } = useAuthContext();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProviderProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -127,9 +141,17 @@ const ProvidersPage = () => {
   const [showAvailabilityDialog, setShowAvailabilityDialog] = useState(false);
   const [showGalleryDialog, setShowGalleryDialog] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
+
+  // Log selected order for debugging scheduled_at presence
+  React.useEffect(() => {
+    if (selectedOrder) console.debug("selectedOrder opened:", selectedOrder);
+  }, [selectedOrder]);
 
   // Estados para edição de disponibilidade
-  const [editingAvailability, setEditingAvailability] = useState<Availability | null>(null);
+  const [editingAvailability, setEditingAvailability] =
+    useState<Availability | null>(null);
   const [newAvailability, setNewAvailability] = useState<Availability>({
     weekday: 1,
     start_time: "08:00",
@@ -148,16 +170,18 @@ const ProvidersPage = () => {
   const fetchProviderData = async () => {
     setLoading(true);
     try {
-      // Simular busca do perfil do prestador logado
-      // Em produção, pegar do token/contexto
       const providerId = localStorage.getItem("providerId") || "1";
-      
-      const [profileRes, ordersRes, reviewsRes, galleryRes] = await Promise.all([
-        fetch(`${apiUrl}/providers/${providerId}`),
-        fetch(`${apiUrl}/orders?providerId=${providerId}`),
-        fetch(`${apiUrl}/reviews?providerId=${providerId}`),
-        fetch(`${apiUrl}/gallery?providerId=${providerId}`),
-      ]);
+
+      const [profileRes, ordersRes, reviewsRes, galleryRes] = await Promise.all(
+        [
+          fetch(`${apiUrl}/providers/${providerId}`),
+          fetch(`${apiUrl}/orders`, {
+            headers: { Authorization: token ? `Bearer ${token}` : "" },
+          }),
+          fetch(`${apiUrl}/reviews?providerId=${providerId}`),
+          fetch(`${apiUrl}/gallery?providerId=${providerId}`),
+        ]
+      );
 
       if (profileRes.ok) {
         const profileData = await profileRes.json();
@@ -166,6 +190,7 @@ const ProvidersPage = () => {
 
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
+        console.debug("GET /orders response:", ordersData);
         setOrders(ordersData);
       }
 
@@ -203,7 +228,7 @@ const ProvidersPage = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
   const handleAddAvailability = async () => {
@@ -224,7 +249,11 @@ const ProvidersPage = () => {
         });
         fetchProviderData();
         setShowAvailabilityDialog(false);
-        setNewAvailability({ weekday: 1, start_time: "08:00", end_time: "18:00" });
+        setNewAvailability({
+          weekday: 1,
+          start_time: "08:00",
+          end_time: "18:00",
+        });
       }
     } catch (error) {
       toast({
@@ -319,18 +348,62 @@ const ProvidersPage = () => {
   };
 
   const getStatusColor = (status: string) => {
-    const colors: { [key: string]: string } = {
-      PENDENTE: "bg-yellow-500",
-      CONFIRMADO: "bg-blue-500",
-      CONCLUIDO: "bg-green-500",
-      CANCELADO: "bg-red-500",
-    };
-    return colors[status] || "bg-gray-500";
+    const s = (status || "").toUpperCase();
+    if (s === "REQUESTED" || s === "PENDENTE") return "bg-yellow-500";
+    if (s === "CONFIRMED" || s === "CONFIRMADO") return "bg-blue-500";
+    if (s === "DONE" || s === "CONCLUIDO") return "bg-green-500";
+    if (s === "CANCELLED" || s === "CANCELADO") return "bg-red-500";
+    return "bg-gray-500";
+  };
+
+  const refreshOrders = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/orders`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.debug("refreshOrders response:", data);
+        setOrders(data);
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar pedidos", err);
+    }
+  };
+
+  const updateOrderStatus = async (orderId: number, status: string) => {
+    try {
+      const res = await fetch(`${apiUrl}/orders/${orderId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || `Erro: ${res.status}`);
+      }
+
+      toast({ title: "Sucesso", description: "Status atualizado" });
+      await refreshOrders();
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err.message || "Erro ao atualizar status",
+        variant: "destructive",
+      });
+    }
   };
 
   const averageRating =
     reviews.length > 0
-      ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+      ? (
+          reviews.reduce((sum, review) => sum + review.rating, 0) /
+          reviews.length
+        ).toFixed(1)
       : "0.0";
 
   if (loading) {
@@ -492,27 +565,64 @@ const ProvidersPage = () => {
                       <div className="space-y-2">
                         <div>
                           <span className="font-medium">Serviços:</span>{" "}
-                          {order.services.join(", ")}
+                          {(order.services || [])
+                            .map((s: any) => (s && s.name ? s.name : String(s)))
+                            .join(", ")}
                         </div>
                         <div className="text-sm text-gray-600">
+                          Criado:{" "}
                           {new Date(order.created_at).toLocaleDateString()}
                         </div>
+                        {order.scheduled_at && (
+                          <div className="text-sm text-gray-600">
+                            Agendado para:{" "}
+                            {new Date(order.scheduled_at).toLocaleString()}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                     <CardFooter className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setShowOrderDialog(true);
+                        }}
+                      >
                         Ver Detalhes
                       </Button>
-                      {order.status === "PENDENTE" && (
+                      {(order.status || "").toUpperCase() === "REQUESTED" ||
+                      (order.status || "").toUpperCase() === "PENDENTE" ? (
                         <>
-                          <Button size="sm">Aceitar</Button>
-                          <Button variant="destructive" size="sm">
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              updateOrderStatus(order.id, "CONFIRMED")
+                            }
+                          >
+                            Aceitar
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              updateOrderStatus(order.id, "CANCELLED")
+                            }
+                          >
                             Recusar
                           </Button>
                         </>
-                      )}
-                      {order.status === "CONFIRMADO" && (
-                        <Button size="sm">Marcar como Concluído</Button>
+                      ) : null}
+                      {((order.status || "").toUpperCase() === "CONFIRMED" ||
+                        (order.status || "").toUpperCase() ===
+                          "CONFIRMADO") && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateOrderStatus(order.id, "DONE")}
+                        >
+                          Marcar como Concluído
+                        </Button>
                       )}
                     </CardFooter>
                   </Card>
@@ -672,6 +782,102 @@ const ProvidersPage = () => {
         </Tabs>
       </main>
 
+      {/* Dialog de detalhes do pedido */}
+      <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Pedido</DialogTitle>
+          </DialogHeader>
+          {selectedOrder ? (
+            <div className="space-y-4">
+              <div>
+                <div className="font-medium">Pedido #{selectedOrder.id}</div>
+                <div className="text-sm text-gray-600">
+                  Cliente: {selectedOrder.client_name}
+                </div>
+                <div className="text-sm text-gray-600">
+                  Criado em:{" "}
+                  {new Date(selectedOrder.created_at).toLocaleString()}
+                </div>
+                {selectedOrder.scheduled_at && (
+                  <div className="text-sm text-gray-600">
+                    Agendado para:{" "}
+                    {new Date(selectedOrder.scheduled_at).toLocaleString()}
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="font-medium">Serviços</div>
+                <ul className="list-disc list-inside">
+                  {(selectedOrder.services || []).map((s: any, i: number) => (
+                    <li key={i}>
+                      {s && s.name ? s.name : String(s)}
+                      {s && s.OrderService && s.OrderService.quantidade ? (
+                        <span className="text-sm text-gray-500">
+                          {" "}
+                          — qty: {s.OrderService.quantidade}
+                        </span>
+                      ) : null}
+                      {s && s.OrderService && s.OrderService.scheduled_at ? (
+                        <div className="text-sm text-gray-600">
+                          Agendado para:{" "}
+                          {new Date(
+                            s.OrderService.scheduled_at
+                          ).toLocaleString()}
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div>Carregando...</div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowOrderDialog(false)}>
+              Fechar
+            </Button>
+            {selectedOrder &&
+              ((selectedOrder.status || "").toUpperCase() === "REQUESTED" ||
+                (selectedOrder.status || "").toUpperCase() === "PENDENTE") && (
+                <>
+                  <Button
+                    onClick={() => {
+                      updateOrderStatus(selectedOrder.id, "CONFIRMED");
+                      setShowOrderDialog(false);
+                    }}
+                  >
+                    Aceitar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      updateOrderStatus(selectedOrder.id, "CANCELLED");
+                      setShowOrderDialog(false);
+                    }}
+                  >
+                    Recusar
+                  </Button>
+                </>
+              )}
+            {selectedOrder &&
+              ((selectedOrder.status || "").toUpperCase() === "CONFIRMED" ||
+                (selectedOrder.status || "").toUpperCase() ===
+                  "CONFIRMADO") && (
+                <Button
+                  onClick={() => {
+                    updateOrderStatus(selectedOrder.id, "DONE");
+                    setShowOrderDialog(false);
+                  }}
+                >
+                  Marcar como Concluído
+                </Button>
+              )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog para adicionar/editar disponibilidade */}
       <Dialog
         open={showAvailabilityDialog}
@@ -733,7 +939,10 @@ const ProvidersPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAvailabilityDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowAvailabilityDialog(false)}
+            >
               Cancelar
             </Button>
             <Button onClick={handleAddAvailability}>Adicionar</Button>
@@ -766,7 +975,10 @@ const ProvidersPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGalleryDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowGalleryDialog(false)}
+            >
               Cancelar
             </Button>
             <Button onClick={handleAddImage}>Adicionar</Button>
@@ -805,9 +1017,7 @@ const ProvidersPage = () => {
             ))}
           </div>
           <DialogFooter>
-            <Button onClick={() => setShowServicesDialog(false)}>
-              Fechar
-            </Button>
+            <Button onClick={() => setShowServicesDialog(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

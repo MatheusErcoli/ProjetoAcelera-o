@@ -6,7 +6,6 @@ module.exports = {
     const now = new Date();
     const passwordHash = await bcrypt.hash("123456", 10);
 
-    // Verificar se o usuário admin já existe
     const existingAdmin = await queryInterface.sequelize.query(
       `SELECT id FROM users WHERE email = 'admin@climber.com'`,
       { type: queryInterface.sequelize.QueryTypes.SELECT }

@@ -15,12 +15,12 @@ module.exports = {
         services,
       } = req.body;
 
-      // Basic validation
       if (!name || !email || !whatsapp || !photo_url || !password) {
-        return res.status(400).json({ message: "Campos obrigatórios faltando" });
+        return res
+          .status(400)
+          .json({ message: "Campos obrigatórios faltando" });
       }
 
-      // Check unique constraints: email and whatsapp
       const existingByEmail = await User.findOne({ where: { email } });
       if (existingByEmail) {
         return res.status(409).json({ message: "Email já cadastrado" });
@@ -63,94 +63,95 @@ module.exports = {
           );
         }
 
-        // Se é um prestador e tem serviços, associá-los
-        if ((role === "PRESTADOR" || !role) && services && Array.isArray(services) && services.length > 0) {
-          // Validar que os serviços existem
-          const serviceIds = services.map(s => typeof s === 'object' ? s.id : s);
+        if (
+          (role === "PRESTADOR" || !role) &&
+          services &&
+          Array.isArray(services) &&
+          services.length > 0
+        ) {
+          const serviceIds = services.map((s) =>
+            typeof s === "object" ? s.id : s
+          );
           const existingServices = await Service.findAll({
             where: { id: serviceIds },
-            transaction: t
+            transaction: t,
           });
 
           if (existingServices.length !== serviceIds.length) {
             throw new Error("Um ou mais serviços não existem");
           }
 
-          // Criar as associações
           await newUser.addServices(serviceIds, { transaction: t });
         }
 
         return newUser;
       });
 
-      // Reload with address and services to return
       const created = await User.findByPk(result.id, {
         attributes: { exclude: ["password_hash"] },
         include: [
           { model: Address, as: "address" },
-          { 
-            model: Service, 
-            as: "services", 
+          {
+            model: Service,
+            as: "services",
             through: { attributes: [] },
-            required: false
-          }
+            required: false,
+          },
         ],
       });
 
       return res.status(201).json(created);
     } catch (err) {
       console.error(err);
-      // Handle specific sequelize unique constraint errors (fallback)
       if (err.name === "SequelizeUniqueConstraintError") {
-        return res.status(409).json({ message: "Conflito de unicidade", error: err.message });
+        return res
+          .status(409)
+          .json({ message: "Conflito de unicidade", error: err.message });
       }
-      return res.status(500).json({ message: "Erro ao criar usuário", error: err.message });
+      return res
+        .status(500)
+        .json({ message: "Erro ao criar usuário", error: err.message });
     }
   },
 
   async getUser(req, res) {
     try {
-      // Buscar todos os usuários primeiro
       const users = await User.findAll({
         attributes: { exclude: ["password_hash"] },
-        include: [
-          { model: Address, as: "address" }
-        ],
+        include: [{ model: Address, as: "address" }],
         order: [["id", "ASC"]],
       });
 
-      // Para cada usuário, buscar serviços apenas se for prestador
       const usersWithServices = await Promise.all(
         users.map(async (user) => {
           const userData = user.toJSON();
-          
-          if (user.role === 'PRESTADOR') {
-            // Buscar serviços apenas para prestadores
+
+          if (user.role === "PRESTADOR") {
             const userWithServices = await User.findByPk(user.id, {
               attributes: { exclude: ["password_hash"] },
               include: [
                 { model: Address, as: "address" },
                 {
-                  model: Service, 
-                  as: "services", 
+                  model: Service,
+                  as: "services",
                   through: { attributes: [] },
-                  required: false
-                }
-              ]
+                  required: false,
+                },
+              ],
             });
             return userWithServices.toJSON();
           }
-          
-          // Para não prestadores, retornar sem o campo services
+
           return userData;
         })
       );
 
       return res.json(usersWithServices);
-
     } catch (err) {
       console.error(err);
-      return res.status(500).json({ message: "Erro ao listar usuários", error: err.message });
+      return res
+        .status(500)
+        .json({ message: "Erro ao listar usuários", error: err.message });
     }
   },
 
@@ -174,7 +175,9 @@ module.exports = {
       return res.json(user);
     } catch (err) {
       console.error(err);
-      return res.status(500).json({ message: "Erro ao buscar usuário", error: err.message });
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar usuário", error: err.message });
     }
   },
 
@@ -217,14 +220,15 @@ module.exports = {
           updates.password_hash = await bcrypt.hash(password, saltRounds);
         }
 
-        // Only update if there are fields
         if (Object.keys(updates).length > 0) {
           await user.update(updates, { transaction: t });
         }
 
         if (address && typeof address === "object") {
-          // se o usuario ja tiver um endereco, atualize-o; caso contrario, crie um novo
-          const existingAddress = await Address.findOne({ where: { user_id: user.id }, transaction: t });
+          const existingAddress = await Address.findOne({
+            where: { user_id: user.id },
+            transaction: t,
+          });
           const addrPayload = {
             logradouro: address.logradouro,
             numero: address.numero,
@@ -242,16 +246,19 @@ module.exports = {
           }
         }
 
-        // Atualizar serviços se fornecidos e o usuário for prestador
-        if (services !== undefined && (user.role === "PRESTADOR" || role === "PRESTADOR")) {
+        if (
+          services !== undefined &&
+          (user.role === "PRESTADOR" || role === "PRESTADOR")
+        ) {
           if (Array.isArray(services)) {
-            const serviceIds = services.map(s => typeof s === 'object' ? s.id : s);
-            
-            // Validar que os serviços existem
+            const serviceIds = services.map((s) =>
+              typeof s === "object" ? s.id : s
+            );
+
             if (serviceIds.length > 0) {
               const existingServices = await Service.findAll({
                 where: { id: serviceIds },
-                transaction: t
+                transaction: t,
               });
 
               if (existingServices.length !== serviceIds.length) {
@@ -259,7 +266,6 @@ module.exports = {
               }
             }
 
-            // Substituir todos os serviços
             await user.setServices(serviceIds, { transaction: t });
           }
         }
@@ -269,19 +275,21 @@ module.exports = {
         attributes: { exclude: ["password_hash"] },
         include: [
           { model: Address, as: "address" },
-          { 
-            model: Service, 
-            as: "services", 
+          {
+            model: Service,
+            as: "services",
             through: { attributes: [] },
-            required: false
-          }
+            required: false,
+          },
         ],
       });
 
       return res.json(updated);
     } catch (err) {
       console.error(err);
-      return res.status(500).json({ message: "Erro ao atualizar usuário", error: err.message });
+      return res
+        .status(500)
+        .json({ message: "Erro ao atualizar usuário", error: err.message });
     }
   },
 

@@ -41,40 +41,33 @@ module.exports.register = async (req, res) => {
 
     // Validações básicas
     if (!name || !email || !whatsapp || !password || !role) {
-      return res
-        .status(400)
-        .json({
-          message: "Todos os campos obrigatórios devem ser preenchidos",
-        });
+      return res.status(400).json({
+        message: "Todos os campos obrigatórios devem ser preenchidos",
+      });
     }
 
-    // Verifica se o email já existe
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "Email já cadastrado" });
     }
 
-    // Verifica se o whatsapp já existe
     const existingWhatsapp = await User.findOne({ where: { whatsapp } });
     if (existingWhatsapp) {
       return res.status(400).json({ message: "Whatsapp já cadastrado" });
     }
 
-    // Hash da senha
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    // Cria o usuário
     const user = await User.create({
       name,
       email,
       whatsapp,
       password_hash,
-      role: role.toUpperCase(), // Garante que está em maiúsculas
-      photo_url: "https://via.placeholder.com/150", // Foto padrão temporária
+      role: role.toUpperCase(),
+      photo_url: "https://via.placeholder.com/150",
     });
 
-    // Cria o endereço se fornecido
     if (address) {
       await Address.create({
         user_id: user.id,
@@ -88,11 +81,9 @@ module.exports.register = async (req, res) => {
       });
     }
 
-    // Associa serviços se for prestador
     if (role.toLowerCase() === "prestador" && services && services.length > 0) {
       const { ProviderService } = require("../models");
 
-      // Cria as associações na tabela provider_services
       const serviceAssociations = services.map((serviceId) => ({
         provider_id: user.id,
         service_id: serviceId,
@@ -101,7 +92,6 @@ module.exports.register = async (req, res) => {
       await ProviderService.bulkCreate(serviceAssociations);
     }
 
-    // Gera token
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
@@ -120,7 +110,6 @@ module.exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error("Erro no registro:", error);
-    // Tratamento específico para violação de unique contraints
     if (error && error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors && error.errors[0] && error.errors[0].path;
       return res

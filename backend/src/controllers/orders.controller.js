@@ -4,7 +4,7 @@ module.exports = {
   async createOrder(req, res) {
     try {
       const { provider_id, scheduled_at, services } = req.body;
-      const customer_id = req.user.id; // vem do token JWT
+      const customer_id = req.user.id;
 
       if (
         !provider_id ||
@@ -30,6 +30,7 @@ module.exports = {
           service_id: s.service_id,
           quantidade: s.quantidade || 1,
           observacoes: s.observacoes || "",
+          scheduled_at: s.scheduled_at || scheduled_at || null,
         });
       }
 
@@ -54,7 +55,7 @@ module.exports = {
           ? { provider_id: id }
           : role === "customer"
           ? { customer_id: id }
-          : {}; // admin vê tudo
+          : {};
 
       const orders = await Order.findAll({
         where,
@@ -65,7 +66,9 @@ module.exports = {
             model: Service,
             as: "services",
             attributes: ["id", "name"],
-            through: { attributes: ["quantidade", "observacoes"] },
+            through: {
+              attributes: ["quantidade", "observacoes", "scheduled_at"],
+            },
           },
         ],
         order: [["created_at", "DESC"]],
@@ -93,7 +96,9 @@ module.exports = {
             model: Service,
             as: "services",
             attributes: ["id", "name"],
-            through: { attributes: ["quantidade", "observacoes"] },
+            through: {
+              attributes: ["quantidade", "observacoes", "scheduled_at"],
+            },
           },
         ],
       });
@@ -101,7 +106,6 @@ module.exports = {
       if (!order)
         return res.status(404).json({ message: "Ordem não encontrada" });
 
-      // Checagem de permissão
       if (role === "provider" && order.provider_id !== userId) {
         return res.status(403).json({ message: "Não autorizado" });
       }
