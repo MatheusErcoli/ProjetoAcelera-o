@@ -12,8 +12,8 @@ exports.listProviders = async (req, res, next) => {
         as: "address",
         required: !!(cidade || uf),
         where: {
-          ...(cidade ? { cidade } : {}),
-          ...(uf ? { uf } : {}),
+          ...(cidade ? { cidade: { [Op.like]: `%${cidade}%` } } : {}),
+          ...(uf ? { uf: { [Op.like]: `%${uf}%` } } : {}),
         },
       },
       {

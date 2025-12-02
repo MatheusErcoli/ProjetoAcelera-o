@@ -22,7 +22,7 @@ import RegisterPage from "./pages/register/RegisterPage";
 const queryClient = new QueryClient();
 
 const App = () => {
-  useEffect(() => {
+  /*useEffect(() => {
     // Exemplo de chamada à API do backend
     fetch(`${apiUrl}/orders`)
       .then((response) => response.json())
@@ -32,7 +32,7 @@ const App = () => {
       .catch((error) => {
         console.error("Erro ao conectar com o backend:", error);
       });
-  }, []);
+  }, []);*/
 
   return (
     <QueryClientProvider client={queryClient}>
