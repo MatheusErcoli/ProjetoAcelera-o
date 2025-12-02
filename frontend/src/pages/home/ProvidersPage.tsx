@@ -144,12 +144,10 @@ const ProvidersPage = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
 
-  // Log selected order for debugging scheduled_at presence
   React.useEffect(() => {
     if (selectedOrder) console.debug("selectedOrder opened:", selectedOrder);
   }, [selectedOrder]);
 
-  // Estados para edição de disponibilidade
   const [editingAvailability, setEditingAvailability] =
     useState<Availability | null>(null);
   const [newAvailability, setNewAvailability] = useState<Availability>({
@@ -158,7 +156,6 @@ const ProvidersPage = () => {
     end_time: "18:00",
   });
 
-  // Estados para galeria
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageDescription, setNewImageDescription] = useState("");
 
@@ -371,6 +368,30 @@ const ProvidersPage = () => {
     }
   };
 
+  const formatDate = (iso?: string) => {
+    if (!iso) return "";
+    try {
+      return new Date(iso).toLocaleDateString("pt-BR");
+    } catch (e) {
+      return iso;
+    }
+  };
+
+  const formatDateTime = (iso?: string) => {
+    if (!iso) return "";
+    try {
+      return new Date(iso).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return iso;
+    }
+  };
+
   const updateOrderStatus = async (orderId: number, status: string) => {
     try {
       const res = await fetch(`${apiUrl}/orders/${orderId}/status`, {
@@ -570,13 +591,11 @@ const ProvidersPage = () => {
                             .join(", ")}
                         </div>
                         <div className="text-sm text-gray-600">
-                          Criado:{" "}
-                          {new Date(order.created_at).toLocaleDateString()}
+                          Criado: {formatDate(order.created_at)}
                         </div>
                         {order.scheduled_at && (
                           <div className="text-sm text-gray-600">
-                            Agendado para:{" "}
-                            {new Date(order.scheduled_at).toLocaleString()}
+                            Agendado para: {formatDateTime(order.scheduled_at)}
                           </div>
                         )}
                       </div>
@@ -748,7 +767,7 @@ const ProvidersPage = () => {
                             {review.client_name}
                           </CardTitle>
                           <CardDescription>
-                            {new Date(review.created_at).toLocaleDateString()}
+                            {formatDate(review.created_at)}
                           </CardDescription>
                         </div>
                         <div className="flex items-center gap-1">
@@ -796,13 +815,11 @@ const ProvidersPage = () => {
                   Cliente: {selectedOrder.client_name}
                 </div>
                 <div className="text-sm text-gray-600">
-                  Criado em:{" "}
-                  {new Date(selectedOrder.created_at).toLocaleString()}
+                  Criado em: {formatDateTime(selectedOrder.created_at)}
                 </div>
                 {selectedOrder.scheduled_at && (
                   <div className="text-sm text-gray-600">
-                    Agendado para:{" "}
-                    {new Date(selectedOrder.scheduled_at).toLocaleString()}
+                    Agendado para: {formatDateTime(selectedOrder.scheduled_at)}
                   </div>
                 )}
               </div>
@@ -821,9 +838,7 @@ const ProvidersPage = () => {
                       {s && s.OrderService && s.OrderService.scheduled_at ? (
                         <div className="text-sm text-gray-600">
                           Agendado para:{" "}
-                          {new Date(
-                            s.OrderService.scheduled_at
-                          ).toLocaleString()}
+                          {formatDateTime(s.OrderService.scheduled_at)}
                         </div>
                       ) : null}
                     </li>
