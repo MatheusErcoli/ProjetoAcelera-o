@@ -7,7 +7,8 @@ module.exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(401).json({ message: "Usuário não encontrado" });
+    if (!user)
+      return res.status(401).json({ message: "Usuário não encontrado" });
 
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(401).json({ message: "Senha incorreta" });
@@ -18,14 +19,14 @@ module.exports.login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({ 
+    res.json({
       token,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error("Erro no login:", error);
@@ -35,17 +36,28 @@ module.exports.login = async (req, res) => {
 
 module.exports.register = async (req, res) => {
   try {
-    const { name, email, whatsapp, password, role, address, services } = req.body;
+    const { name, email, whatsapp, password, role, address, services } =
+      req.body;
 
     // Validações básicas
     if (!name || !email || !whatsapp || !password || !role) {
-      return res.status(400).json({ message: "Todos os campos obrigatórios devem ser preenchidos" });
+      return res
+        .status(400)
+        .json({
+          message: "Todos os campos obrigatórios devem ser preenchidos",
+        });
     }
 
     // Verifica se o email já existe
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "Email já cadastrado" });
+    }
+
+    // Verifica se o whatsapp já existe
+    const existingWhatsapp = await User.findOne({ where: { whatsapp } });
+    if (existingWhatsapp) {
+      return res.status(400).json({ message: "Whatsapp já cadastrado" });
     }
 
     // Hash da senha
@@ -59,7 +71,7 @@ module.exports.register = async (req, res) => {
       whatsapp,
       password_hash,
       role: role.toUpperCase(), // Garante que está em maiúsculas
-      photo_url: 'https://via.placeholder.com/150', // Foto padrão temporária
+      photo_url: "https://via.placeholder.com/150", // Foto padrão temporária
     });
 
     // Cria o endereço se fornecido
@@ -77,15 +89,15 @@ module.exports.register = async (req, res) => {
     }
 
     // Associa serviços se for prestador
-    if (role.toLowerCase() === 'prestador' && services && services.length > 0) {
+    if (role.toLowerCase() === "prestador" && services && services.length > 0) {
       const { ProviderService } = require("../models");
-      
+
       // Cria as associações na tabela provider_services
-      const serviceAssociations = services.map(serviceId => ({
+      const serviceAssociations = services.map((serviceId) => ({
         provider_id: user.id,
         service_id: serviceId,
       }));
-      
+
       await ProviderService.bulkCreate(serviceAssociations);
     }
 
@@ -103,11 +115,19 @@ module.exports.register = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error("Erro no registro:", error);
+    // Tratamento específico para violação de unique contraints
+    if (error && error.name === "SequelizeUniqueConstraintError") {
+      const field = error.errors && error.errors[0] && error.errors[0].path;
+      return res
+        .status(409)
+        .json({ message: `${field || "Campo"} já cadastrado` });
+    }
+
     res.status(500).json({ message: "Erro interno no servidor" });
   }
 };
@@ -115,7 +135,7 @@ module.exports.register = async (req, res) => {
 module.exports.me = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: ['id', 'name', 'email', 'role', 'whatsapp', 'photo_url']
+      attributes: ["id", "name", "email", "role", "whatsapp", "photo_url"],
     });
 
     if (!user) {
@@ -128,7 +148,7 @@ module.exports.me = async (req, res) => {
       email: user.email,
       role: user.role,
       whatsapp: user.whatsapp,
-      photo_url: user.photo_url
+      photo_url: user.photo_url,
     });
   } catch (error) {
     console.error("Erro ao buscar usuário:", error);
