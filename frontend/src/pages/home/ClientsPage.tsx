@@ -118,8 +118,13 @@ const ClientsPage = () => {
     fetchServices();
   }, []);
 
+  // Carregar prestadores ao iniciar ou quando filtros mudarem (com debounce)
   useEffect(() => {
-    fetchProviders();
+    const timeoutId = setTimeout(() => {
+      fetchProviders();
+    }, 500); // Aguarda 500ms após parar de digitar
+
+    return () => clearTimeout(timeoutId);
   }, [selectedService, selectedCity, selectedUf]);
 
   const fetchServices = async () => {
@@ -141,20 +146,25 @@ const ClientsPage = () => {
     setLoading(true);
     try {
       let url = `${apiUrl}/providers?`;
-      if (selectedService) url += `serviceId=${selectedService}&`;
-      if (selectedCity) url += `cidade=${selectedCity}&`;
-      if (selectedUf) url += `uf=${selectedUf}&`;
 
+      if (selectedService && selectedService.trim() !== "")
+        url += `serviceId=${selectedService}&`;
+      if (selectedCity && selectedCity.trim() !== "")
+        url += `cidade=${selectedCity}&`;
+      if (selectedUf && selectedUf.trim() !== "") url += `uf=${selectedUf}&`;
       const response = await fetch(url);
-      if (!response.ok) throw new Error("Erro ao carregar prestadores");
+      if (!response.ok) {
+        // Apenas loga erro sem mostrar toast
+        console.error("Erro ao buscar prestadores:", response.status);
+        setProviders([]);
+        return;
+      }
       const data = await response.json();
-      setProviders(data);
+      setProviders(Array.isArray(data) ? data : []);
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os prestadores",
-        variant: "destructive",
-      });
+      // Apenas erros de rede críticos
+      console.error("Erro de rede:", error);
+      setProviders([]);
     } finally {
       setLoading(false);
     }

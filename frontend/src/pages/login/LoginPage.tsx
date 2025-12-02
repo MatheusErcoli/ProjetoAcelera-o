@@ -1,81 +1,82 @@
-import { useState, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { apiUrl } from '@/config/api';
-import { validateEmail, validatePassword } from './validations';
-import './styles.css';
+import { useState, FormEvent } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { apiUrl } from "@/config/api";
+import { validateEmail, validatePassword } from "./validations";
+import "./styles.css";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isLoading } = useAuthContext();
 
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
     rememberMe: false,
   });
 
   const [errors, setErrors] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
 
-  const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [alert, setAlert] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const [touched, setTouched] = useState({
     email: false,
     password: false,
   });
 
-  const handleBlur = (field: 'email' | 'password') => {
+  const handleBlur = (field: "email" | "password") => {
     setTouched((prev) => ({ ...prev, [field]: true }));
     validateField(field, formData[field]);
   };
 
-  const handleChange = (field: 'email' | 'password', value: string) => {
+  const handleChange = (field: "email" | "password", value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (touched[field]) {
       validateField(field, value);
     }
   };
 
-  const validateField = (field: 'email' | 'password', value: string) => {
-    let error = '';
+  const validateField = (field: "email" | "password", value: string) => {
+    let error = "";
 
-    if (field === 'email') {
+    if (field === "email") {
       if (!value.trim()) {
-        error = 'Email é obrigatório';
+        error = "Email é obrigatório";
       } else if (!validateEmail(value)) {
-        error = 'Email inválido';
+        error = "Email inválido";
       }
     }
 
-    if (field === 'password') {
+    if (field === "password") {
       if (!value) {
-        error = 'Senha é obrigatória';
+        error = "Senha é obrigatória";
       } else if (!validatePassword(value)) {
-        error = 'Senha deve ter pelo menos 6 caracteres';
+        error = "Senha deve ter pelo menos 6 caracteres";
       }
     }
 
     setErrors((prev) => ({ ...prev, [field]: error }));
-    return error === '';
+    return error === "";
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setAlert(null);
 
-    // Mark all fields as touched
     setTouched({ email: true, password: true });
 
-    // Validate all fields
-    const emailValid = validateField('email', formData.email);
-    const passwordValid = validateField('password', formData.password);
+    const emailValid = validateField("email", formData.email);
+    const passwordValid = validateField("password", formData.password);
 
     if (!emailValid || !passwordValid) {
       return;
@@ -83,40 +84,40 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password);
-      setAlert({ type: 'success', message: 'Login realizado com sucesso!' });
-      
-      // Aguardar um pouco para o estado ser atualizado
+      setAlert({ type: "success", message: "Login realizado com sucesso!" });
+
       setTimeout(() => {
-        const storedToken = localStorage.getItem('token');
+        const storedToken = localStorage.getItem("token");
         if (storedToken) {
-          // Buscar informações do usuário para determinar redirecionamento
           fetch(`${apiUrl}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${storedToken}` }
+            headers: { Authorization: `Bearer ${storedToken}` },
           })
-            .then(res => res.json())
-            .then(userData => {
+            .then((res) => res.json())
+            .then((userData) => {
               switch (userData.role) {
-                case 'ADMIN':
-                  navigate('/admin');
+                case "ADMIN":
+                  navigate("/admin");
                   break;
-                case 'PRESTADOR':
-                  localStorage.setItem('providerId', userData.id);
-                  navigate('/home/providers');
+                case "PRESTADOR":
+                  localStorage.setItem("providerId", userData.id);
+                  navigate("/home/providers");
                   break;
-                case 'CONTRATANTE':
-                  navigate('/home/clients');
+                case "CONTRATANTE":
+                  navigate("/home/clients");
                   break;
                 default:
-                  navigate('/');
+                  navigate("/");
               }
             })
-            .catch(() => navigate('/'));
+            .catch(() => navigate("/"));
         }
       }, 1000);
     } catch (error: any) {
       setAlert({
-        type: 'error',
-        message: error.message || 'Erro ao realizar login. Verifique suas credenciais.',
+        type: "error",
+        message:
+          error.message ||
+          "Erro ao realizar login. Verifique suas credenciais.",
       });
     }
   };
@@ -136,9 +137,9 @@ export default function LoginPage() {
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              onBlur={() => handleBlur('email')}
-              className={errors.email && touched.email ? 'border-red-500' : ''}
+              onChange={(e) => handleChange("email", e.target.value)}
+              onBlur={() => handleBlur("email")}
+              className={errors.email && touched.email ? "border-red-500" : ""}
               placeholder="seu@email.com"
             />
             {errors.email && touched.email && (
@@ -152,9 +153,11 @@ export default function LoginPage() {
               id="password"
               type="password"
               value={formData.password}
-              onChange={(e) => handleChange('password', e.target.value)}
-              onBlur={() => handleBlur('password')}
-              className={errors.password && touched.password ? 'border-red-500' : ''}
+              onChange={(e) => handleChange("password", e.target.value)}
+              onBlur={() => handleBlur("password")}
+              className={
+                errors.password && touched.password ? "border-red-500" : ""
+              }
               placeholder="••••••••"
             />
             {errors.password && touched.password && (
@@ -168,7 +171,10 @@ export default function LoginPage() {
                 id="rememberMe"
                 checked={formData.rememberMe}
                 onCheckedChange={(checked) =>
-                  setFormData((prev) => ({ ...prev, rememberMe: checked as boolean }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    rememberMe: checked as boolean,
+                  }))
                 }
               />
               <label
@@ -185,17 +191,23 @@ export default function LoginPage() {
 
           {alert && (
             <Alert className={`alert ${alert.type}`}>
-              <AlertDescription className="alert-text">{alert.message}</AlertDescription>
+              <AlertDescription className="alert-text">
+                {alert.message}
+              </AlertDescription>
             </Alert>
           )}
 
-          <Button type="submit" className="auth-btn login-btn" disabled={isLoading}>
-            {isLoading ? 'Entrando...' : 'Entrar'}
+          <Button
+            type="submit"
+            className="auth-btn login-btn"
+            disabled={isLoading}
+          >
+            {isLoading ? "Entrando..." : "Entrar"}
           </Button>
 
           <div className="form-footer">
             <p>
-              Não tem uma conta?{' '}
+              Não tem uma conta?{" "}
               <Link to="/register" className="register-link">
                 Cadastre-se
               </Link>
