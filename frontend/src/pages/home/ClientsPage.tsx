@@ -120,6 +120,8 @@ const ClientsPage = () => {
   );
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [providerReviews, setProviderReviews] = useState<any[]>([]);
+  const [loadingProviderReviews, setLoadingProviderReviews] = useState(false);
 
   useEffect(() => {
     fetchServices();
@@ -194,6 +196,30 @@ const ClientsPage = () => {
   const openProviderDetails = (provider: Provider) => {
     setSelectedProvider(provider);
     setShowDetailsDialog(true);
+    loadProviderReviews(provider.id);
+  };
+
+  const loadProviderReviews = async (providerId: number) => {
+    setLoadingProviderReviews(true);
+    try {
+      const headers: any = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`${apiUrl}/reviews?providerId=${providerId}`, {
+        headers,
+      });
+      if (!res.ok) {
+        console.error("Erro ao carregar avaliações", res.status);
+        setProviderReviews([]);
+        return;
+      }
+      const data = await res.json();
+      setProviderReviews(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Erro ao carregar avaliações", err);
+      setProviderReviews([]);
+    } finally {
+      setLoadingProviderReviews(false);
+    }
   };
 
   const formatDateTime = (iso?: string) => {
@@ -538,6 +564,64 @@ const ClientsPage = () => {
                     </div>
                   </div>
                 )}
+              <div>
+                <h4 className="font-semibold mb-2">Avaliações</h4>
+                {loadingProviderReviews ? (
+                  <div className="text-sm text-gray-600">
+                    Carregando avaliações...
+                  </div>
+                ) : providerReviews.length === 0 ? (
+                  <div className="text-sm text-gray-600">
+                    Sem avaliações públicas
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {providerReviews.map((r) => (
+                      <div
+                        key={r.id}
+                        className="p-3 bg-white border rounded shadow-sm"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>
+                                {r.author?.name
+                                  ? r.author.name.substring(0, 2).toUpperCase()
+                                  : "--"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">
+                                {r.author?.name || "Usuário"}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {formatDateTime(r.created_at)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <Star
+                                key={n}
+                                className={
+                                  n <= (r.rating || 0)
+                                    ? "h-4 w-4 text-yellow-400"
+                                    : "h-4 w-4 text-gray-300"
+                                }
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        {r.comment && (
+                          <div className="mt-2 text-sm text-gray-700">
+                            {r.comment}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           <DialogFooter>

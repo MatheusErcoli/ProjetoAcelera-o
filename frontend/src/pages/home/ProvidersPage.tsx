@@ -144,7 +144,7 @@ const ProvidersPage = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewRating, setReviewRating] = useState<number>(0);
   const [reviewComment, setReviewComment] = useState<string>("");
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [selectedOrderReviews, setSelectedOrderReviews] = useState<Review[]>(
@@ -468,7 +468,7 @@ const ProvidersPage = () => {
       toast({ title: "Sucesso", description: "Avaliação enviada" });
       setShowReviewDialog(false);
       setReviewComment("");
-      setReviewRating(5);
+      setReviewRating(0);
       // refresh data
       await fetchProviderData();
       await refreshOrders();
@@ -1001,7 +1001,7 @@ const ProvidersPage = () => {
             <div>
               <Label>Nota</Label>
               <div className="flex items-center gap-1 mt-2">
-                {[5, 4, 3, 2, 1].map((n) => {
+                {[1, 2, 3, 4, 5].map((n) => {
                   const filled = (hoverRating ?? reviewRating) >= n;
                   return (
                     <button
@@ -1011,13 +1011,11 @@ const ProvidersPage = () => {
                       onMouseEnter={() => setHoverRating(n)}
                       onMouseLeave={() => setHoverRating(null)}
                       aria-label={`Dar ${n} estrelas`}
-                      className="p-1"
+                      className="p-1 cursor-pointer"
                     >
                       <Star
                         className={`h-6 w-6 ${
-                          filled
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-300"
+                          filled ? "text-yellow-400" : "text-gray-300"
                         }`}
                       />
                     </button>
