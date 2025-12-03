@@ -97,8 +97,15 @@ const weekdays = [
 
 const ClientsPage = () => {
   const { toast } = useToast();
-  const { logout, user } = useAuthContext();
+  const { logout, user, token } = useAuthContext();
   const navigate = useNavigate();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [showOrdersSheet, setShowOrdersSheet] = useState(false);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
+  const [showOrderDetailsDialog, setShowOrderDetailsDialog] = useState(false);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewComment, setReviewComment] = useState("");
   const [providers, setProviders] = useState<Provider[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
@@ -116,6 +123,11 @@ const ClientsPage = () => {
 
   useEffect(() => {
     fetchServices();
+  }, []);
+
+  useEffect(() => {
+    // fetch client orders on mount
+    fetchClientOrders();
   }, []);
 
   // Carregar prestadores ao iniciar ou quando filtros mudarem (com debounce)
@@ -184,6 +196,83 @@ const ClientsPage = () => {
     setShowDetailsDialog(true);
   };
 
+  const formatDateTime = (iso?: string) => {
+    if (!iso) return "";
+    try {
+      return new Date(iso).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return iso;
+    }
+  };
+
+  const fetchClientOrders = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/orders`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      // filter only customer orders (server usually returns based on token)
+      setOrders(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Erro ao buscar pedidos do cliente", err);
+    }
+  };
+
+  const openOrderDetails = (order: any) => {
+    setSelectedOrderDetails(order);
+    setShowOrderDetailsDialog(true);
+  };
+
+  const openReviewForOrder = (order: any) => {
+    setSelectedOrderDetails(order);
+    setReviewRating(5);
+    setReviewComment("");
+    setShowReviewDialog(true);
+  };
+
+  const submitReview = async () => {
+    if (!selectedOrderDetails) return;
+    try {
+      const body: any = {
+        rating: reviewRating,
+        comment: reviewComment,
+        order_id: selectedOrderDetails.id,
+      };
+      // if provider info available, set target
+      if (selectedOrderDetails.provider && selectedOrderDetails.provider.id)
+        body.target_id = selectedOrderDetails.provider.id;
+
+      const res = await fetch(`${apiUrl}/reviews`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || `Erro: ${res.status}`);
+      }
+      toast({ title: "Sucesso", description: "Avaliação enviada" });
+      setShowReviewDialog(false);
+      await fetchClientOrders();
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatWhatsApp = (whatsapp: string) => {
     return whatsapp.replace(/\D/g, "");
   };
@@ -212,7 +301,11 @@ const ClientsPage = () => {
                       <User className="mr-2 h-4 w-4" />
                       Meu Perfil
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => setShowOrdersSheet(true)}
+                    >
                       <Calendar className="mr-2 h-4 w-4" />
                       Meus Pedidos
                     </Button>
@@ -490,6 +583,171 @@ const ClientsPage = () => {
           }}
         />
       )}
+
+      {/* Meus Pedidos Sheet (cliente) */}
+      <Sheet open={showOrdersSheet} onOpenChange={setShowOrdersSheet}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Meus Pedidos</SheetTitle>
+            <SheetDescription>
+              Pedidos em andamento e concluídos
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 mt-4">
+            {orders.length === 0 ? (
+              <div className="text-sm text-gray-600">Nenhum pedido</div>
+            ) : (
+              orders.map((o) => (
+                <Card key={o.id} className="mb-2">
+                  <CardContent>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">Pedido #{o.id}</div>
+                        <div className="text-sm text-gray-600">
+                          {o.provider?.name || "—"}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          Agendado: {formatDateTime(o.scheduled_at)}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge>{o.status}</Badge>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openOrderDetails(o)}
+                          >
+                            Ver
+                          </Button>
+                          {((o.status || "").toUpperCase() === "DONE" ||
+                            (o.status || "").toUpperCase() === "CONCLUIDO") && (
+                            <Button
+                              size="sm"
+                              onClick={() => openReviewForOrder(o)}
+                            >
+                              Avaliar
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Order Details Dialog (from Meus Pedidos) */}
+      <Dialog
+        open={showOrderDetailsDialog}
+        onOpenChange={setShowOrderDetailsDialog}
+      >
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Pedido</DialogTitle>
+          </DialogHeader>
+          {selectedOrderDetails ? (
+            <div className="space-y-4">
+              <div className="font-medium">
+                Pedido #{selectedOrderDetails.id}
+              </div>
+              <div className="text-sm text-gray-600">
+                Cliente: {selectedOrderDetails.customer?.name || user?.name}
+              </div>
+              <div className="text-sm text-gray-600">
+                Criado: {formatDateTime(selectedOrderDetails.created_at)}
+              </div>
+              {selectedOrderDetails.scheduled_at && (
+                <div className="text-sm text-gray-600">
+                  Agendado para:{" "}
+                  {formatDateTime(selectedOrderDetails.scheduled_at)}
+                </div>
+              )}
+              <div>
+                <div className="font-medium">Serviços</div>
+                <ul className="list-disc list-inside">
+                  {(selectedOrderDetails.services || []).map(
+                    (s: any, i: number) => (
+                      <li key={i}>
+                        {s && s.name ? s.name : String(s)}
+                        {s && s.OrderService && s.OrderService.quantidade ? (
+                          <span className="text-sm text-gray-500">
+                            {" "}
+                            — qty: {s.OrderService.quantidade}
+                          </span>
+                        ) : null}
+                        {s && s.OrderService && s.OrderService.scheduled_at ? (
+                          <div className="text-sm text-gray-600">
+                            Agendado para:{" "}
+                            {formatDateTime(s.OrderService.scheduled_at)}
+                          </div>
+                        ) : null}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div>Carregando...</div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowOrderDetailsDialog(false)}
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Avaliar Prestador</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600">
+              Pedido #{selectedOrderDetails?.id}
+            </div>
+            <div>
+              <Label>Nota</Label>
+              <div className="flex gap-2 mt-2">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Button
+                    key={n}
+                    variant={n <= reviewRating ? "default" : "ghost"}
+                    onClick={() => setReviewRating(n)}
+                  >
+                    {n}★
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Comentário</Label>
+              <Textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowReviewDialog(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={submitReview}>Enviar Avaliação</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

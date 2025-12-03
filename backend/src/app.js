@@ -27,7 +27,7 @@ app.use("/auth", authRoutes);
 app.use("/auth/login", authRoutes);
 app.use("/orders", require("./routes/orders.routes"));
 app.use("/users", usersRoutes);
-
+app.use("/reviews", require("./routes/reviews.routes"));
 
 app.use(errorHandler);
 

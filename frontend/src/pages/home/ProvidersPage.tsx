@@ -143,6 +143,9 @@ const ProvidersPage = () => {
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewComment, setReviewComment] = useState<string>("");
 
   React.useEffect(() => {
     if (selectedOrder) console.debug("selectedOrder opened:", selectedOrder);
@@ -414,6 +417,46 @@ const ProvidersPage = () => {
       toast({
         title: "Erro",
         description: err.message || "Erro ao atualizar status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const submitProviderReview = async () => {
+    if (!selectedOrder) return;
+    try {
+      const payload = {
+        rating: reviewRating,
+        comment: reviewComment,
+        order_id: selectedOrder.id,
+        target_id: (selectedOrder as any).customer_id,
+      };
+
+      const res = await fetch(`${apiUrl}/reviews`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || `Erro: ${res.status}`);
+      }
+
+      toast({ title: "Sucesso", description: "Avaliação enviada" });
+      setShowReviewDialog(false);
+      setReviewComment("");
+      setReviewRating(5);
+      // refresh data
+      await fetchProviderData();
+      await refreshOrders();
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err.message || "Erro ao enviar avaliação",
         variant: "destructive",
       });
     }
@@ -889,6 +932,60 @@ const ProvidersPage = () => {
                   Marcar como Concluído
                 </Button>
               )}
+            {selectedOrder &&
+              ((selectedOrder.status || "").toUpperCase() === "DONE" ||
+                (selectedOrder.status || "").toUpperCase() === "CONCLUIDO") &&
+              (user?.role === "PROVIDER" || user?.id === profile?.id) && (
+                <Button onClick={() => setShowReviewDialog(true)}>
+                  Avaliar Cliente
+                </Button>
+              )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para avaliar cliente (prestador -> cliente) */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Avaliar Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nota</Label>
+              <Select
+                value={reviewRating.toString()}
+                onValueChange={(value) => setReviewRating(parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="4">4</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Comentário (opcional)</Label>
+              <Textarea
+                placeholder="Escreva um comentário sobre o cliente..."
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowReviewDialog(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={submitProviderReview}>Enviar Avaliação</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
