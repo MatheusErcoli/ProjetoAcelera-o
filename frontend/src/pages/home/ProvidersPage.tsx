@@ -146,10 +146,29 @@ const ProvidersPage = () => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewRating, setReviewRating] = useState<number>(5);
   const [reviewComment, setReviewComment] = useState<string>("");
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [selectedOrderReviews, setSelectedOrderReviews] = useState<Review[]>(
+    []
+  );
 
   React.useEffect(() => {
     if (selectedOrder) console.debug("selectedOrder opened:", selectedOrder);
   }, [selectedOrder]);
+
+  // load reviews when an order is selected
+  useEffect(() => {
+    if (selectedOrder) {
+      loadOrderReviews(selectedOrder.id);
+    }
+  }, [selectedOrder]);
+
+  // clear selection when the order dialog is closed
+  useEffect(() => {
+    if (!showOrderDialog) {
+      setSelectedOrder(null);
+      setSelectedOrderReviews([]);
+    }
+  }, [showOrderDialog]);
 
   const [editingAvailability, setEditingAvailability] =
     useState<Availability | null>(null);
@@ -462,6 +481,28 @@ const ProvidersPage = () => {
     }
   };
 
+  const loadOrderReviews = async (orderId: number) => {
+    try {
+      const res = await fetch(`${apiUrl}/reviews?orderId=${orderId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedOrderReviews(data || []);
+      } else {
+        setSelectedOrderReviews([]);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar avaliações do pedido", e);
+      setSelectedOrderReviews([]);
+    }
+  };
+
+  const hasUserReviewedSelectedOrder = () => {
+    if (!user || !selectedOrder) return false;
+    return selectedOrderReviews.some(
+      (r) => r && (r as any).author && (r as any).author.id === user.id
+    );
+  };
+
   const averageRating =
     reviews.length > 0
       ? (
@@ -649,6 +690,7 @@ const ProvidersPage = () => {
                         size="sm"
                         onClick={() => {
                           setSelectedOrder(order);
+                          loadOrderReviews(order.id);
                           setShowOrderDialog(true);
                         }}
                       >
@@ -935,9 +977,14 @@ const ProvidersPage = () => {
             {selectedOrder &&
               ((selectedOrder.status || "").toUpperCase() === "DONE" ||
                 (selectedOrder.status || "").toUpperCase() === "CONCLUIDO") &&
-              (user?.role === "PROVIDER" || user?.id === profile?.id) && (
-                <Button onClick={() => setShowReviewDialog(true)}>
-                  Avaliar Cliente
+              user?.id === profile?.id && (
+                <Button
+                  onClick={() => setShowReviewDialog(true)}
+                  disabled={hasUserReviewedSelectedOrder()}
+                >
+                  {hasUserReviewedSelectedOrder()
+                    ? "Avaliado"
+                    : "Avaliar Cliente"}
                 </Button>
               )}
           </DialogFooter>
@@ -953,21 +1000,30 @@ const ProvidersPage = () => {
           <div className="space-y-4">
             <div>
               <Label>Nota</Label>
-              <Select
-                value={reviewRating.toString()}
-                onValueChange={(value) => setReviewRating(parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="4">4</SelectItem>
-                  <SelectItem value="3">3</SelectItem>
-                  <SelectItem value="2">2</SelectItem>
-                  <SelectItem value="1">1</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1 mt-2">
+                {[5, 4, 3, 2, 1].map((n) => {
+                  const filled = (hoverRating ?? reviewRating) >= n;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setReviewRating(n)}
+                      onMouseEnter={() => setHoverRating(n)}
+                      onMouseLeave={() => setHoverRating(null)}
+                      aria-label={`Dar ${n} estrelas`}
+                      className="p-1"
+                    >
+                      <Star
+                        className={`h-6 w-6 ${
+                          filled
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <Label>Comentário (opcional)</Label>
@@ -985,7 +1041,14 @@ const ProvidersPage = () => {
             >
               Cancelar
             </Button>
-            <Button onClick={submitProviderReview}>Enviar Avaliação</Button>
+            <Button
+              onClick={submitProviderReview}
+              disabled={hasUserReviewedSelectedOrder()}
+            >
+              {hasUserReviewedSelectedOrder()
+                ? "Já avaliado"
+                : "Enviar Avaliação"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
