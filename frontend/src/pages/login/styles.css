@@ -81,6 +81,34 @@
   font-size: 14px;
 }
 
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  padding-right: 40px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--gray);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.password-toggle-btn:hover {
+  color: var(--dark-blue);
+}
+
 .error-message {
   color: var(--error);
   font-size: 12px;
@@ -96,7 +124,7 @@
 
 .form-options {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin: 10px 0;
 }
@@ -128,8 +156,8 @@
   background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
   color: var(--white);
   border: none;
-  padding: 16px 24px;
-  border-radius: 8px;
+  padding: 14px 24px;
+  border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -138,11 +166,12 @@
   overflow: hidden;
   margin-top: 10px;
   width: 100%;
+  box-shadow: 0 4px 15px rgba(70, 130, 180, 0.3);
 }
 
 .auth-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--shadow-hover);
+  box-shadow: 0 8px 30px rgba(70, 130, 180, 0.4);
 }
 
 .auth-btn:disabled {

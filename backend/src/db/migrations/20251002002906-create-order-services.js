@@ -22,6 +22,7 @@ module.exports = {
         defaultValue: 1,
       },
       observacoes: { type: Sequelize.TEXT },
+      scheduled_at: { type: Sequelize.DATE },
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { addActivity } from "@/lib/activityLog";
+import { adminLogger } from "@/lib/adminLogger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,13 +17,13 @@ import {
   Users, 
   Search, 
   Edit, 
-  Trash2, 
   UserPlus,
-  Filter,
   MapPin,
   Phone,
   Mail,
-  Plus
+  CheckCircle,
+  XCircle,
+  Calendar
 } from "lucide-react";
 import { apiUrl } from "@/config/api";
 
@@ -414,11 +414,13 @@ const AdminContratantes = () => {
           ? { ...contratante, is_active: newStatus }
           : contratante
       ));
-      // Log activation/deactivation
-      try {
-        const name = contratantes.find(c => c.id === id)?.name || String(id);
-        addActivity({ type: newStatus ? 'client_activated' : 'client_deactivated', message: `Contratante ${name} ${newStatus ? 'ativado' : 'desativado'}`, status: newStatus ? 'active' : 'inactive' });
-      } catch (e) {}
+      // Log ativação/desativação no backend
+      const name = contratantes.find(c => c.id === id)?.name || String(id);
+      if (newStatus) {
+        await adminLogger.activated("users", id, `Contratante ${name} ativado`);
+      } else {
+        await adminLogger.deactivated("users", id, `Contratante ${name} desativado`);
+      }
     } catch (error) {
       console.error('Erro ao alterar status do contratante:', error);
       alert(error instanceof Error ? error.message : 'Erro ao alterar status do contratante');
@@ -432,8 +434,8 @@ const AdminContratantes = () => {
       setActionLoading(true);
       const newContratante = await createContratante(data);
       setContratantes([...contratantes, newContratante]);
-      // Log creation
-      try { addActivity({ type: 'new_client', message: `Novo contratante cadastrado: ${newContratante.name}`, status: newContratante.is_active ? 'active' : 'inactive' }); } catch (e) {}
+      // Log criação no backend
+      await adminLogger.created("users", newContratante.id, `Novo contratante: ${newContratante.name}`);
       setCreateDialog(false);
     } catch (error) {
       console.error('Erro ao criar contratante:', error);
@@ -452,8 +454,8 @@ const AdminContratantes = () => {
       setContratantes(contratantes.map(contratante =>
         contratante.id === selectedContratante.id ? updatedContratante : contratante
       ));
-      // Log update
-      try { addActivity({ type: 'client_update', message: `Contratante ${updatedContratante.name} atualizado`, status: updatedContratante.is_active ? 'active' : 'inactive' }); } catch (e) {}
+      // Log atualização no backend
+      await adminLogger.updated("users", updatedContratante.id, `Contratante ${updatedContratante.name} atualizado`);
       setEditDialog(false);
       setSelectedContratante(null);
     } catch (error) {
@@ -541,7 +543,7 @@ const AdminContratantes = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <CheckCircle className="w-5 h-5 text-green-500" />
               <div className="flex gap-1 items-center">
                 <p className="text-2xl font-bold">
                   {contratantes.filter(c => c.is_active).length}
@@ -554,7 +556,7 @@ const AdminContratantes = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <XCircle className="w-5 h-5 text-red-500" />
               <div className="flex gap-1 items-center">
                 <p className="text-2xl font-bold">
                   {contratantes.filter(c => !c.is_active).length}
@@ -579,10 +581,6 @@ const AdminContratantes = () => {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              Filtros
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -596,6 +594,7 @@ const AdminContratantes = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Contratante</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>Endereço</TableHead>
@@ -608,18 +607,12 @@ const AdminContratantes = () => {
               {filteredContratantes.map((contratante) => (
                 <TableRow key={contratante.id}>
                   <TableCell>
+                    <span className="font-mono text-sm">#{contratante.id}</span>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-3">
-                      <img
-                        src={contratante.photo_url}
-                        alt={contratante.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder-avatar.png";
-                        }}
-                      />
                       <div>
                         <p className="font-medium">{contratante.name}</p>
-                        <p className="text-sm text-muted-foreground">ID: {contratante.id}</p>
                       </div>
                     </div>
                   </TableCell>
@@ -636,29 +629,26 @@ const AdminContratantes = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="w-3 h-3 text-muted-foreground" />
-                      <span className="max-w-48 truncate">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground max-w-xs">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">
                         {formatAddress(contratante.address)}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      className={`${contratante.is_active ? "hover:bg-green-700 bg-green-600" : "hover:bg-red-700 bg-red-600"} cursor-pointer"}`}
+                      className={`${contratante.is_active ? "hover:bg-green-700 bg-green-600" : "hover:bg-red-700 bg-red-600"} cursor-pointer`}
                       onClick={() => toggleUserStatus(contratante.id, contratante.is_active)}
                     >
                       {contratante.is_active ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {contratante.created_at || 
-                       contratante.createdAt || 
-                       contratante.created_at || 
-                       contratante.date_created || 
-                       "Data não disponível"}
-                    </span>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
+                      <span>{formatDate(contratante.created_at || contratante.createdAt)}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

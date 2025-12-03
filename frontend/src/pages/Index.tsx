@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Search, Star, Shield, Zap } from "lucide-react";
+import { ArrowRight, Search, Star, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -11,7 +11,7 @@ const Index = () => {
           {/* Logo/Brand */}
           <div className="mb-8">
             <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-              ServicesClimber
+              PrestadoresClimber
             </h1>
             <p className="text-2xl text-gray-600 mb-12">
               Conectando você aos melhores prestadores de serviços
@@ -71,7 +71,7 @@ const Index = () => {
       {/* Footer */}
       <div className="border-t border-gray-200 mt-20">
         <div className="container mx-auto px-6 py-8 text-center text-gray-600">
-          <p>© 2025 ServicesClimber. Todos os direitos reservados.</p>
+          <p>© 2025 PrestadoresClimber. Todos os direitos reservados.</p>
         </div>
       </div>
     </div>

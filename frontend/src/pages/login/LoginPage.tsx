@@ -3,11 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { apiUrl } from "@/config/api";
-import { validateEmail, validatePassword } from "./validations";
+import { validateEmail, validatePassword } from "../register/validations";
 import "./styles.css";
 
 export default function LoginPage() {
@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
   });
 
   const [errors, setErrors] = useState({
@@ -33,6 +32,8 @@ export default function LoginPage() {
     email: false,
     password: false,
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleBlur = (field: "email" | "password") => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -149,41 +150,33 @@ export default function LoginPage() {
 
           <div className="form-group">
             <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => handleChange("password", e.target.value)}
-              onBlur={() => handleBlur("password")}
-              className={
-                errors.password && touched.password ? "border-red-500" : ""
-              }
-              placeholder="••••••••"
-            />
+            <div className="password-input-container">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+                onBlur={() => handleBlur("password")}
+                className={
+                  errors.password && touched.password ? "border-red-500" : ""
+                }
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="password-toggle-btn"
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
             {errors.password && touched.password && (
               <span className="error-message show">{errors.password}</span>
             )}
           </div>
 
           <div className="form-options">
-            <div className="checkbox-container flex items-center space-x-2">
-              <Checkbox
-                id="rememberMe"
-                checked={formData.rememberMe}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    rememberMe: checked as boolean,
-                  }))
-                }
-              />
-              <label
-                htmlFor="rememberMe"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Lembrar-me
-              </label>
-            </div>
             <Link to="/forgot-password" className="forgot-password">
               Esqueceu a senha?
             </Link>

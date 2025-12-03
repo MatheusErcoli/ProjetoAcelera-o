@@ -5,38 +5,43 @@ import { apiUrl } from "@/config/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getActivities, subscribeActivity, ActivityEntry } from "@/lib/activityLog";
 
-const recentActivities = [];
+interface AdminLog {
+  id: number;
+  admin_id: number | null;
+  action: string;
+  target_table: string;
+  target_id: number;
+  details: string | null;
+  created_at: string;
+  admin: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
 
-const pendingReviews = [
-  {
-    id: 1,
-    provider: "João Encanador",
-    client: "Maria Silva",
-    service: "Reparo de vazamento",
-    date: "15/01/2024"
-  },
-  {
-    id: 2,
-    provider: "Carlos Eletricista", 
-    client: "Pedro Santos",
-    service: "Instalação elétrica",
-    date: "14/01/2024"
-  },
-  {
-    id: 3,
-    provider: "Ana Pintora",
-    client: "José Costa",
-    service: "Pintura residencial", 
-    date: "13/01/2024"
-  }
-];
+interface PendingReview {
+  order: {
+    id: number;
+    status: string;
+    created_at: string;
+    provider: { id: number; name: string; email: string; role: string };
+    customer: { id: number; name: string; email: string; role: string };
+  };
+  provider_review: any | null;
+  customer_review: any | null;
+  missing_provider_review: boolean;
+  missing_customer_review: boolean;
+}
 
 export default function AdminDashboard() {
   const [providersCount, setProvidersCount] = useState<number | null>(null);
   const [clientsCount, setClientsCount] = useState<number | null>(null);
   const [servicesCount, setServicesCount] = useState<number | null>(null);
+  const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([]);
+  const [pendingReviewsCount, setPendingReviewsCount] = useState<number>(0);
+  const [recentLogs, setRecentLogs] = useState<AdminLog[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -44,12 +49,29 @@ export default function AdminDashboard() {
     async function fetchCounts() {
       try {
         const base = apiUrl || "";
+        const token = localStorage.getItem("token");
 
         const providersPromise = fetch(`${base}/providers`);
         const usersPromise = fetch(`${base}/users`);
         const servicesPromise = fetch(`${base}/services`);
+        const pendingReviewsPromise = fetch(`${base}/reviews/pending`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        const logsPromise = fetch(`${base}/admin/logs/recent`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
 
-        const [provRes, usersRes, servicesRes] = await Promise.all([providersPromise, usersPromise, servicesPromise]);
+        const [provRes, usersRes, servicesRes, pendingRes, logsRes] = await Promise.all([
+          providersPromise, 
+          usersPromise, 
+          servicesPromise,
+          pendingReviewsPromise,
+          logsPromise
+        ]);
 
         if (!provRes.ok) throw new Error(`Providers fetch failed: ${provRes.status}`);
         if (!usersRes.ok) throw new Error(`Users fetch failed: ${usersRes.status}`);
@@ -58,12 +80,27 @@ export default function AdminDashboard() {
         const providers = await provRes.json();
         const users = await usersRes.json();
         const services = await servicesRes.json();
-
+        
         if (!mounted) return;
 
         setProvidersCount(Array.isArray(providers) ? providers.length : 0);
         setClientsCount(Array.isArray(users) ? users.filter((u: any) => u.role === "CONTRATANTE").length : 0);
         setServicesCount(Array.isArray(services) ? services.length : 0);
+
+        if (pendingRes.ok) {
+          const pending = await pendingRes.json();
+          if (Array.isArray(pending)) {
+            setPendingReviews(pending);
+            setPendingReviewsCount(pending.length);
+          }
+        }
+
+        if (logsRes.ok) {
+          const logs = await logsRes.json();
+          if (Array.isArray(logs)) {
+            setRecentLogs(logs);
+          }
+        }
       } catch (err) {
         console.error("Error fetching admin counts:", err);
       }
@@ -74,24 +111,46 @@ export default function AdminDashboard() {
     return () => { mounted = false; };
   }, []);
 
-  // Recent activities state (hydrated from localStorage via getActivities)
-  const [recentActivitiesState, setRecentActivitiesState] = useState<ActivityEntry[]>(() => {
-    try {
-      const stored = getActivities();
-      if (stored.length) return stored;
-      // convert static fallback to ActivityEntry shape
-      return recentActivities.map((r) => ({ ...r, createdAt: new Date().toISOString() }));
-    } catch (e) {
-      return recentActivities.map((r) => ({ ...r, createdAt: new Date().toISOString() }));
-    }
-  });
+  const formatLogMessage = (log: AdminLog) => {
+    const actionMap: Record<string, string> = {
+      CREATE: "criou",
+      UPDATE: "atualizou",
+      DELETE: "excluiu",
+      APPROVE: "aprovou",
+      REJECT: "rejeitou",
+      ACTIVATE: "ativou",
+      DEACTIVATE: "desativou",
+    };
 
-  useEffect(() => {
-    const unsubscribe = subscribeActivity((entry) => {
-      setRecentActivitiesState((prev) => [entry, ...prev].slice(0, 10));
-    });
-    return unsubscribe;
-  }, []);
+    const tableMap: Record<string, string> = {
+      users: "usuário",
+      services: "serviço",
+      orders: "ordem",
+      reviews: "avaliação",
+      providers: "prestador",
+    };
+
+    const action = actionMap[log.action] || log.action.toLowerCase();
+    const table = tableMap[log.target_table] || log.target_table;
+    const adminName = log.admin?.name || "Admin";
+
+    return `${adminName} ${action} ${table} #${log.target_id}`;
+  };
+
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Agora mesmo";
+    if (diffMins < 60) return `Há ${diffMins} minuto${diffMins > 1 ? 's' : ''}`;
+    if (diffHours < 24) return `Há ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+    if (diffDays < 7) return `Há ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+    return date.toLocaleDateString('pt-BR');
+  };
 
   return (
     <div className="space-y-6">
@@ -100,7 +159,7 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">
-            Visão geral do ServicesClimber
+            Visão geral do PrestadoresClimber
           </p>
         </div>
         {/* <Button className="bg-primary hover:bg-primary/90">
@@ -124,7 +183,7 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Avaliações Pendentes"
-          value={23}
+          value={pendingReviewsCount}
           description="Precisam de moderação"
           icon={Star}
         />
@@ -148,15 +207,24 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivitiesState.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-accent/30">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+              {recentLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhuma atividade recente
+                </p>
+              ) : (
+                recentLogs.map((log) => (
+                  <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-accent/30">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-foreground">{formatLogMessage(log)}</p>
+                      <p className="text-xs text-muted-foreground">{formatRelativeTime(log.created_at)}</p>
+                      {log.details && (
+                        <p className="text-xs text-muted-foreground mt-1">{log.details}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -171,27 +239,45 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {pendingReviews.map((review) => (
-                <div key={review.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {review.provider} ← {review.client}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {review.service} • {review.date}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="text-xs">
-                      Revisar
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              {pendingReviews.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Não há avaliações pendentes no momento
+                </p>
+              ) : (
+                pendingReviews.slice(0, 5).map((review) => {
+                  const date = new Date(review.order.created_at).toLocaleDateString('pt-BR');
+                  return (
+                    <div key={review.order.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">
+                          {review.order.provider.name} ← {review.order.customer.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Ordem #{review.order.id} • {date}
+                        </p>
+                        <div className="flex gap-2 mt-1">
+                          {review.missing_provider_review && (
+                            <Badge variant="outline" className="text-xs">
+                              Falta avaliação do prestador
+                            </Badge>
+                          )}
+                          {review.missing_customer_review && (
+                            <Badge variant="outline" className="text-xs">
+                              Falta avaliação do cliente
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
-            <Button variant="ghost" className="w-full mt-4 text-sm">
-              Ver todas as avaliações
-            </Button>
+            {pendingReviews.length > 5 && (
+              <Button variant="ghost" className="w-full mt-4 text-sm">
+                Ver todas as {pendingReviews.length} avaliações pendentes
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

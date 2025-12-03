@@ -1,5 +1,5 @@
 const { Op, literal } = require("sequelize");
-const { User, Address, Service, Availability } = require("../models");
+const { User, Address, Service, Availability, Review } = require("../models");
 
 exports.listProviders = async (req, res, next) => {
   try {
@@ -20,7 +20,7 @@ exports.listProviders = async (req, res, next) => {
         model: Service,
         as: "services",
         required: !!serviceId,
-        where: serviceId ? { id: serviceId } : undefined,
+        where: serviceId ? { id: serviceId, is_active: true } : { is_active: true },
         through: { attributes: [] },
       },
       {
@@ -39,7 +39,25 @@ exports.listProviders = async (req, res, next) => {
       order: [["name", "ASC"]],
     });
 
-    res.json(rows);
+    const providersWithRatings = await Promise.all(
+      rows.map(async (provider) => {
+        const reviews = await Review.findAll({
+          where: { target_id: provider.id, is_active: true },
+        });
+        
+        const averageRating = reviews.length > 0
+          ? parseFloat((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1))
+          : 0;
+        
+        return {
+          ...provider.toJSON(),
+          averageRating,
+          reviewCount: reviews.length
+        };
+      })
+    );
+
+    res.json(providersWithRatings);
   } catch (err) {
     next(err);
   }
@@ -52,13 +70,28 @@ exports.getProviderById = async (req, res, next) => {
       where: { id, role: "PRESTADOR" },
       include: [
         { model: Address, as: "address" },
-        { model: Service, as: "services", through: { attributes: [] } },
+        { model: Service, as: "services", where: { is_active: true }, required: false, through: { attributes: [] } },
         { model: Availability, as: "availability" },
       ],
     });
     if (!row)
       return res.status(404).json({ message: "Prestador não encontrado" });
-    res.json(row);
+    
+    const reviews = await Review.findAll({
+      where: { target_id: id, is_active: true },
+    });
+    
+    const averageRating = reviews.length > 0
+      ? parseFloat((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1))
+      : 0;
+    
+    const providerData = {
+      ...row.toJSON(),
+      averageRating,
+      reviewCount: reviews.length
+    };
+    
+    res.json(providerData);
   } catch (err) {
     next(err);
   }

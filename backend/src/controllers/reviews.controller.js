@@ -1,4 +1,5 @@
 const { Review, Order, User } = require("../models");
+const { logAdminAction } = require("../utils/adminLogger");
 
 module.exports = {
   async createReview(req, res) {
@@ -12,12 +13,10 @@ module.exports = {
       if (!rating || !order_id)
         return res.status(400).json({ message: "Dados incompletos" });
 
-      // verify order exists
       const order = await Order.findByPk(order_id);
       if (!order)
         return res.status(404).json({ message: "Ordem não encontrada" });
 
-      // only participants (customer or provider) or admin can create review
       const isCustomer = order.customer_id === author_id;
       const isProvider = order.provider_id === author_id;
       if (!isCustomer && !isProvider && author_role !== "ADMIN") {
@@ -26,22 +25,19 @@ module.exports = {
           .json({ message: "Somente participantes da ordem podem avaliar" });
       }
 
-      // only allow review when order is DONE/CONCLUIDO
-      const doneStatuses = ["DONE", "CONCLUIDO"];
+      const doneStatuses = ["DONE", "CONCLUIDO", "CONCLUDED"];
       if (!doneStatuses.includes((order.status || "").toUpperCase())) {
         return res
           .status(400)
           .json({ message: "Só é possível avaliar após conclusão do serviço" });
       }
 
-      // determine target: if provided use it, otherwise pick opposite participant
       let finalTarget = target_id || null;
       if (!finalTarget) {
         if (isCustomer) finalTarget = order.provider_id;
         else if (isProvider) finalTarget = order.customer_id;
       }
 
-      // prevent duplicate review by same author for same order
       const existing = await Review.findOne({ where: { order_id, author_id } });
       if (existing)
         return res.status(409).json({ message: "Você já avaliou esta ordem" });
@@ -54,6 +50,19 @@ module.exports = {
         target_id: finalTarget,
       });
 
+      // Log da criação de avaliação
+      if (req.user && req.user.role === "ADMIN") {
+        const author = await User.findByPk(author_id, { attributes: ['name'] });
+        const target = finalTarget ? await User.findByPk(finalTarget, { attributes: ['name'] }) : null;
+        await logAdminAction(
+          req.user.id,
+          "CREATE",
+          "reviews",
+          review.id,
+          `Avaliação criada por ${author?.name || 'Usuário'} para ${target?.name || 'Usuário'} - Nota: ${rating}/5`
+        );
+      }
+
       return res.status(201).json({ message: "Avaliação criada", review });
     } catch (err) {
       console.error(err);
@@ -65,22 +74,18 @@ module.exports = {
 
   async getReviews(req, res) {
     try {
-      // support query param targetId (generic) and orderId
       const { providerId, targetId, orderId } = req.query;
       const target = targetId || providerId || null;
 
-      // Admin can fetch raw reviews (bypass mutual rule)
       const isAdmin = req.user && req.user.role === "ADMIN";
 
       if (target && !isAdmin) {
-        // fetch reviews where target_id = target, but only those where there is a reciprocal review
         const all = await Review.findAll({
           where: { target_id: target },
           include: [{ model: User, as: "author", attributes: ["id", "name"] }],
           order: [["created_at", "DESC"]],
         });
 
-        // find orders for which 'target' has authored a review
         const authored = await Review.findAll({
           where: { author_id: target },
           attributes: ["order_id"],
@@ -91,7 +96,6 @@ module.exports = {
         return res.json(visible);
       }
 
-      // fallback: fetch by order or all
       const where = {};
       if (orderId) where.order_id = orderId;
 
@@ -107,6 +111,175 @@ module.exports = {
       res
         .status(500)
         .json({ message: "Erro ao buscar avaliações", error: err.message });
+    }
+  },
+
+  async getAllReviewsAdmin(req, res) {
+    try {
+      if (!req.user || req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const reviews = await Review.findAll({
+        include: [
+          { 
+            model: User, 
+            as: "author", 
+            attributes: ["id", "name", "email", "role"] 
+          },
+          { 
+            model: User, 
+            as: "target", 
+            attributes: ["id", "name", "email", "role"] 
+          },
+          {
+            model: Order,
+            as: "order",
+            attributes: ["id", "status", "created_at"]
+          }
+        ],
+        order: [["created_at", "DESC"]],
+      });
+
+      res.json(reviews);
+    } catch (err) {
+      console.error(err);
+      res
+        .status(500)
+        .json({ message: "Erro ao buscar avaliações", error: err.message });
+    }
+  },
+
+  async toggleReviewStatus(req, res) {
+    try {
+      if (!req.user || req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const { id } = req.params;
+      const review = await Review.findByPk(id);
+
+      if (!review) {
+        return res.status(404).json({ message: "Avaliação não encontrada" });
+      }
+
+      review.is_active = !review.is_active;
+      await review.save();
+
+      const updatedReview = await Review.findByPk(id, {
+        include: [
+          { 
+            model: User, 
+            as: "author", 
+            attributes: ["id", "name", "email", "role"] 
+          },
+          { 
+            model: User, 
+            as: "target", 
+            attributes: ["id", "name", "email", "role"] 
+          },
+          {
+            model: Order,
+            as: "order",
+            attributes: ["id", "status", "created_at"]
+          }
+        ],
+      });
+
+      // Log do toggle de status da avaliação
+      await logAdminAction(
+        req.user.id,
+        review.is_active ? "ACTIVATE" : "DEACTIVATE",
+        "reviews",
+        review.id,
+        `Avaliação de ${updatedReview.author?.name || 'Usuário'} para ${updatedReview.target?.name || 'Usuário'} - Nota: ${updatedReview.rating}/5`
+      );
+
+      res.json({ 
+        message: `Avaliação ${review.is_active ? 'ativada' : 'desativada'} com sucesso`, 
+        review: updatedReview 
+      });
+    } catch (err) {
+      console.error(err);
+      res
+        .status(500)
+        .json({ message: "Erro ao alterar status da avaliação", error: err.message });
+    }
+  },
+
+  async getPendingReviews(req, res) {
+    try {
+      if (!req.user || req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const completedOrders = await Order.findAll({
+        where: { status: "DONE" },
+        include: [
+          { 
+            model: User, 
+            as: "provider", 
+            attributes: ["id", "name", "email", "role"] 
+          },
+          { 
+            model: User, 
+            as: "customer", 
+            attributes: ["id", "name", "email", "role"] 
+          }
+        ],
+        order: [["created_at", "DESC"]],
+      });
+
+      const pendingReviews = [];
+
+      for (const order of completedOrders) {
+        const existingReviews = await Review.findAll({
+          where: { order_id: order.id },
+          include: [
+            { 
+              model: User, 
+              as: "author", 
+              attributes: ["id", "name", "email", "role"] 
+            },
+            { 
+              model: User, 
+              as: "target", 
+              attributes: ["id", "name", "email", "role"] 
+            }
+          ]
+        });
+
+        const providerReview = existingReviews.find(
+          r => r.author_id === order.provider_id
+        );
+
+        const customerReview = existingReviews.find(
+          r => r.author_id === order.customer_id
+        );
+
+        if (!providerReview || !customerReview) {
+          pendingReviews.push({
+            order: {
+              id: order.id,
+              status: order.status,
+              created_at: order.created_at,
+              provider: order.provider,
+              customer: order.customer
+            },
+            provider_review: providerReview || null,
+            customer_review: customerReview || null,
+            missing_provider_review: !providerReview,
+            missing_customer_review: !customerReview
+          });
+        }
+      }
+
+      res.json(pendingReviews);
+    } catch (err) {
+      console.error(err);
+      res
+        .status(500)
+        .json({ message: "Erro ao buscar avaliações pendentes", error: err.message });
     }
   },
 };

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { apiUrl } from "@/config/api";
 import {
   Search,
-  Filter,
   MoreHorizontal,
   MapPin,
   Phone,
@@ -10,10 +9,14 @@ import {
   XCircle,
   Plus,
   Edit,
+  UserCheck,
+  Briefcase,
+  Calendar,
+  Mail,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { addActivity } from "@/lib/activityLog";
+import { adminLogger } from "@/lib/adminLogger";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -514,8 +517,13 @@ export default function AdminPrestadores() {
             : provider
         )
       );
-      // Log activation/deactivation
-      try { addActivity({ type: isActive ? 'provider_activated' : 'provider_deactivated', message: `Prestador ${providerName} ${isActive ? 'ativado' : 'desativado'}`, status: newStatus }); } catch (e) {}
+      
+      // Log ativação/desativação no backend
+      if (isActive) {
+        await adminLogger.activated("users", providerId, `Prestador ${providerName} ativado`);
+      } else {
+        await adminLogger.deactivated("users", providerId, `Prestador ${providerName} desativado`);
+      }
       
       setActionDialog({ open: false, action: null });
       setSelectedProvider(null);
@@ -544,7 +552,8 @@ export default function AdminPrestadores() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            <UserCheck className="w-8 h-8 text-primary" />
             Prestadores de Serviço
           </h1>
           <p className="text-muted-foreground">
@@ -560,182 +569,219 @@ export default function AdminPrestadores() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <Card className="card-shadow">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome, email ou serviço..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-primary" />
+              <div className="flex gap-1 items-center">
+                <p className="text-2xl font-bold">{providers.length}</p>
+                <p className="text-sm text-muted-foreground">Total</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <div className="flex gap-1 items-center">
+                <p className="text-2xl font-bold">
+                  {providers.filter((p) => p.is_active).length}
+                </p>
+                <p className="text-sm text-muted-foreground">Ativos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-red-500" />
+              <div className="flex gap-1 items-center">
+                <p className="text-2xl font-bold">
+                  {providers.filter((p) => !p.is_active).length}
+                </p>
+                <p className="text-sm text-muted-foreground">Inativos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Buscar por nome, email ou serviço..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <div className="flex gap-2">
               <Button
                 variant={statusFilter === "all" ? "default" : "outline"}
                 onClick={() => setStatusFilter("all")}
                 size="sm"
               >
-                Todos ({providers.length})
+                Todos
               </Button>
               <Button
                 variant={statusFilter === "active" ? "default" : "outline"}
                 onClick={() => setStatusFilter("active")}
                 size="sm"
               >
-                Ativos ({providers.filter((p) => p.is_active === true).length})
-              </Button>
-              <Button
-                variant={statusFilter === "pending" ? "default" : "outline"}
-                onClick={() => setStatusFilter("pending")}
-                size="sm"
-              >
-                Pendentes (
-                {providers.filter((p) => p.status === "pending").length})
+                Ativos
               </Button>
               <Button
                 variant={statusFilter === "inactive" ? "default" : "outline"}
                 onClick={() => setStatusFilter("inactive")}
                 size="sm"
               >
-                Inativos (
-                {providers.filter((p) => p.is_active === false).length})
+                Inativos
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Providers List */}
-      <div className="grid gap-4">
-        {filteredProviders.map((provider) => (
-          <Card
-            key={provider.id}
-            className="card-shadow hover:shadow-lg transition-shadow"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src={provider.avatar} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                      {provider.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {provider.name}
-                      </h3>
-                      {getStatusBadge(provider.status)}
-                    </div>
-
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      <p>{provider.email}</p>
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        <span>
-                          {provider.phone ||
-                            provider.whatsapp ||
-                            "Não informado"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        <span>{formatAddress(provider.address)}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {provider.services?.map((service) => (
-                        <Badge
-                          key={service.id}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {service.name}
-                        </Badge>
-                      ))}
-                      {(!provider.services || provider.services.length === 0) && (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">
-                          Nenhum serviço cadastrado
-                        </Badge>
-                      )}
-                    </div>
-
-                    {provider.status === "active" && (
-                      <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                        <span>⭐ {provider.rating}/5.0</span>
-                        <span>• {provider.totalJobs} trabalhos</span>
-                        <span>• Desde {provider.joinDate}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSelectedProvider(provider);
-                        setEditDialog(true);
-                      }}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Editar Prestador
-                    </DropdownMenuItem>
-                    {provider.status === "active" ? (
-                      <DropdownMenuItem
-                        className="text-error"
-                        onClick={() => {
-                          setSelectedProvider(provider);
-                          setActionDialog({ open: true, action: "deactivate" });
-                        }}
-                      >
-                        Desativar Prestador
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem
-                        className="text-success"
-                        onClick={() => {
-                          setSelectedProvider(provider);
-                          setActionDialog({ open: true, action: "activate" });
-                        }}
-                      >
-                        Ativar Prestador
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredProviders.length === 0 && (
+      {/* Providers Grid */}
+      {filteredProviders.length === 0 ? (
         <Card className="card-shadow">
           <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground">
+            <UserCheck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">
               Nenhum prestador encontrado com os filtros aplicados.
             </p>
           </CardContent>
         </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProviders.map((provider) => (
+            <Card
+              key={provider.id}
+              className="card-shadow hover:shadow-lg transition-shadow"
+            >
+              <CardContent className="p-5">
+                <div className="flex flex-col h-full">
+                  {/* Header com Avatar e Status */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="items-center gap-3"> 
+                      <div className="items-center gap-2">
+                        <span className="border-b font-semibold text-foreground truncate">
+                          ID: #{provider.id}
+                        </span>
+                        <h3 className="font-semibold text-foreground truncate">
+                          {provider.name}
+                        </h3>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedProvider(provider);
+                            setEditDialog(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar Prestador
+                        </DropdownMenuItem>
+                        {provider.status === "active" ? (
+                          <DropdownMenuItem
+                            className="text-error"
+                            onClick={() => {
+                              setSelectedProvider(provider);
+                              setActionDialog({ open: true, action: "deactivate" });
+                            }}
+                          >
+                            Desativar Prestador
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            className="text-success"
+                            onClick={() => {
+                              setSelectedProvider(provider);
+                              setActionDialog({ open: true, action: "activate" });
+                            }}
+                          >
+                            Ativar Prestador
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="mb-3">
+                    {getStatusBadge(provider.status)}
+                  </div>
+
+                  {/* Informações de Contato */}
+                  <div className="space-y-2 mb-3 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">{provider.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">
+                        {provider.phone || provider.whatsapp || "Não informado"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate text-xs">
+                        {formatAddress(provider.address)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Serviços */}
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                      <Briefcase className="w-3 h-3" />
+                      Serviços:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {provider.services && provider.services.length > 0 ? (
+                        provider.services.map((service) => (
+                          <Badge
+                            key={service.id}
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {service.name}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          Nenhum serviço
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Data de Cadastro */}
+                  <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                    <Calendar className="w-3 h-3" />
+                    <span>Desde {provider.joinDate}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Create Provider Section */}
@@ -754,8 +800,8 @@ export default function AdminPrestadores() {
                     setLoading(true);
                     const newProvider = await createProvider(data);
                     setProviders([...providers, newProvider]);
-                    // Log creation
-                    try { addActivity({ type: 'new_provider', message: `Novo prestador cadastrado: ${newProvider.name}`, status: newProvider.status }); } catch (e) {/* ignore */}
+                    // Log criação no backend
+                    await adminLogger.created("users", newProvider.id, `Novo prestador: ${newProvider.name}`);
                     setCreateDialog(false);
                   } catch (error) {
                     console.error('Erro ao criar prestador:', error);
@@ -789,8 +835,8 @@ export default function AdminPrestadores() {
                     setLoading(true);
                     const updatedProvider = await updateProvider(selectedProvider.id, data);
                     setProviders(providers.map(p => p.id === selectedProvider.id ? updatedProvider : p));
-                    // Log update
-                    try { addActivity({ type: 'provider_update', message: `Prestador ${updatedProvider.name} atualizado`, status: updatedProvider.status }); } catch (e) {}
+                    // Log atualização no backend
+                    await adminLogger.updated("users", updatedProvider.id, `Prestador ${updatedProvider.name} atualizado`);
                     setEditDialog(false);
                     setSelectedProvider(null);
                   } catch (error) {

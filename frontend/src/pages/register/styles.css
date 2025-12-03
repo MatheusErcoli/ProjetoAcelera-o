@@ -38,9 +38,9 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 16px 12px;
-  border: none;
-  border-radius: 8px;
+  padding: 18px 12px;
+  border: 2px solid transparent;
+  border-radius: 10px;
   background: transparent;
   color: var(--gray);
   cursor: pointer;
@@ -52,16 +52,20 @@
 .type-btn:hover {
   background: rgba(135, 206, 235, 0.1);
   color: var(--dark-blue);
+  border-color: rgba(135, 206, 235, 0.3);
 }
 
 .type-btn.active {
   background: var(--white);
   color: var(--dark-blue);
-  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.15);
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 12px rgba(70, 130, 180, 0.2);
 }
 
 .type-icon {
-  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .type-text {
@@ -71,17 +75,18 @@
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 28px;
 }
 
 .form-section {
   border: 1px solid #e9ecef;
   border-radius: 12px;
-  padding: 20px;
-  background: rgba(224, 246, 255, 0.3);
+  padding: 28px;
+  background: rgba(224, 246, 255, 0.25);
   opacity: 0;
   transform: translateY(20px);
   animation: slideInUp 0.5s ease-out forwards;
+  box-shadow: 0 2px 8px rgba(70, 130, 180, 0.05);
 }
 
 .form-section:nth-child(2) {
@@ -100,18 +105,30 @@
   color: var(--dark-blue);
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
   border-bottom: 2px solid var(--primary-blue);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .form-row {
   display: flex;
-  gap: 15px;
+  gap: 18px;
   align-items: flex-start;
 }
 
 .form-row .form-group {
+  margin-bottom: 0;
+}
+
+.form-section .form-group {
+  margin-bottom: 20px;
+}
+
+.form-section .form-group:last-child,
+.form-section .form-row:last-child .form-group {
   margin-bottom: 0;
 }
 
@@ -121,6 +138,35 @@
 
 .form-group.flex-2 {
   flex: 2;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  padding-right: 40px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--gray);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+  z-index: 10;
+}
+
+.password-toggle-btn:hover {
+  color: var(--dark-blue);
 }
 
 @keyframes slideInUp {

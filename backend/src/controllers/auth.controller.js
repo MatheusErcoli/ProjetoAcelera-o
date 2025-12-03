@@ -39,7 +39,6 @@ module.exports.register = async (req, res) => {
     const { name, email, whatsapp, password, role, address, services } =
       req.body;
 
-    // Validações básicas
     if (!name || !email || !whatsapp || !password || !role) {
       return res.status(400).json({
         message: "Todos os campos obrigatórios devem ser preenchidos",

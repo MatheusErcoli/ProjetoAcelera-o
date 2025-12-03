@@ -8,12 +8,31 @@ interface User {
   role: 'ADMIN' | 'PRESTADOR' | 'CONTRATANTE';
 }
 
+interface RegisterData {
+  name: string;
+  email: string;
+  whatsapp: string;
+  password: string;
+  role: string;
+  address: {
+    cep: string;
+    logradouro: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+    cidade: string;
+    uf: string;
+  };
+  services?: number[];
+}
+
 interface AuthContextValue {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -48,7 +67,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     try {
-      // Verifica se o token é válido fazendo uma requisição ao backend
       const response = await fetch(`${apiUrl}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${storedToken}`,
@@ -61,7 +79,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setToken(storedToken);
         setIsAuthenticated(true);
       } else {
-        // Token inválido
         localStorage.removeItem('token');
         setUser(null);
         setToken(null);
@@ -113,6 +130,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const register = async (data: RegisterData) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${apiUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao registrar usuário');
+      }
+
+      const responseData = await response.json();
+      
+      if (responseData.token && responseData.user) {
+        localStorage.setItem('token', responseData.token);
+        setToken(responseData.token);
+        setUser(responseData.user);
+        setIsAuthenticated(true);
+      }
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('providerId');
@@ -129,6 +177,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         isLoading,
         isAuthenticated,
         login,
+        register,
         logout,
         checkAuth,
       }}

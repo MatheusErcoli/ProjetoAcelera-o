@@ -152,6 +152,18 @@ if (Order && Service && OrderService) {
     foreignKey: "service_id",
     otherKey: "order_id",
   });
+
+  // Direct association for querying OrderService
+  Order.hasMany(OrderService, {
+    as: "orderServices",
+    foreignKey: "order_id",
+    onDelete: "CASCADE",
+  });
+  
+  OrderService.belongsTo(Order, {
+    as: "order",
+    foreignKey: "order_id",
+  });
 }
 
 db.sequelize = sequelize;

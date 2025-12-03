@@ -8,6 +8,11 @@ const servicesRoutes = require("./routes/services.routes");
 const authRoutes = require("./routes/auth.routes");
 const providersRoutes = require("./routes/providers.routes");
 const usersRoutes = require("./routes/users.routes");
+const adminRoutes = require("./routes/admin.routes");
+const ordersRoutes = require("./routes/orders.routes");
+const reviewsRoutes = require("./routes/reviews.routes");
+const availabilityRoutes = require("./routes/availability.routes");
+const galleryRoutes = require("./routes/gallery.routes");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
@@ -24,10 +29,12 @@ app.use("/health", healthRoutes);
 app.use("/services", servicesRoutes);
 app.use("/providers", providersRoutes);
 app.use("/auth", authRoutes);
-app.use("/auth/login", authRoutes);
-app.use("/orders", require("./routes/orders.routes"));
+app.use("/orders", ordersRoutes);
 app.use("/users", usersRoutes);
-app.use("/reviews", require("./routes/reviews.routes"));
+app.use("/reviews", reviewsRoutes);
+app.use("/admin", adminRoutes);
+app.use("/availability", availabilityRoutes);
+app.use("/gallery", galleryRoutes);
 
 app.use(errorHandler);
 

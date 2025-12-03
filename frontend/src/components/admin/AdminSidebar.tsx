@@ -4,7 +4,7 @@ import {
   UserCheck, 
   Star, 
   Settings, 
-  Activity,
+  Orbit,
   ChevronRight
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -26,9 +26,8 @@ const menuItems = [
   { title: "Contratantes", url: "/admin/contratantes", icon: Users },
   { title: "Avaliações", url: "/admin/avaliacoes", icon: Star },
   { title: "Serviços", url: "/admin/servicos", icon: Settings },
-  { title: "Atividade", url: "/admin/atividade", icon: Activity },
 ];
-
+/*{ title: "Ordens", url: "/admin/ordens", icon: Orbit },*/
 export function AdminSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
@@ -57,7 +56,7 @@ export function AdminSidebar() {
             {!isCollapsed && (
               <div>
                 <h2 className="font-bold text-sidebar-foreground">
-                  ServicesClimber
+                  PrestadoresClimber
                 </h2>
                 <p className="text-xs text-muted-foreground">Admin Panel</p>
               </div>

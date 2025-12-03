@@ -1,5 +1,6 @@
 const { User, Address, Service, ProviderService } = require("../models");
 const bcrypt = require("bcrypt");
+const { logAdminAction } = require("../utils/adminLogger");
 
 module.exports = {
   async createUser(req, res) {
@@ -96,9 +97,21 @@ module.exports = {
             as: "services",
             through: { attributes: [] },
             required: false,
+            where: { is_active: true }
           },
         ],
       });
+
+      // Log da criação de usuário
+      if (req.user && req.user.role === "ADMIN") {
+        await logAdminAction(
+          req.user.id,
+          "CREATE",
+          "users",
+          created.id,
+          `Usuário criado: ${created.name} (${created.role})`
+        );
+      }
 
       return res.status(201).json(created);
     } catch (err) {
@@ -136,6 +149,7 @@ module.exports = {
                   as: "services",
                   through: { attributes: [] },
                   required: false,
+                  where: { is_active: true }
                 },
               ],
             });
@@ -165,7 +179,16 @@ module.exports = {
       const user = await User.findOne({
         where: { id },
         attributes: { exclude: ["password_hash"] },
-        include: [{ model: Address, as: "address" }],
+        include: [
+          { model: Address, as: "address" },
+          {
+            model: Service,
+            as: "services",
+            through: { attributes: [] },
+            required: false,
+            where: { is_active: true }
+          }
+        ],
       });
 
       if (!user) {
@@ -280,9 +303,34 @@ module.exports = {
             as: "services",
             through: { attributes: [] },
             required: false,
+            where: { is_active: true }
           },
         ],
       });
+
+      // Log da atualização de usuário
+      if (req.user && req.user.role === "ADMIN") {
+        const changes = [];
+        if (name !== undefined) changes.push("nome");
+        if (email !== undefined) changes.push("email");
+        if (is_active !== undefined) changes.push(is_active ? "ativado" : "desativado");
+        if (role !== undefined) changes.push(`role alterado para ${role}`);
+        if (services !== undefined) changes.push("serviços");
+        if (address !== undefined) changes.push("endereço");
+        
+        const action = is_active !== undefined ? (is_active ? "ACTIVATE" : "DEACTIVATE") : "UPDATE";
+        const details = changes.length > 0 
+          ? `${updated.name} - Alterações: ${changes.join(", ")}`
+          : `${updated.name} - Atualizado`;
+        
+        await logAdminAction(
+          req.user.id,
+          action,
+          "users",
+          updated.id,
+          details
+        );
+      }
 
       return res.json(updated);
     } catch (err) {

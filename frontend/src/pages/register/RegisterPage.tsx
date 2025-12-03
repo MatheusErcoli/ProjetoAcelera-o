@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useRegister } from '@/hooks/useRegister';
+import { User, Wrench, Eye, EyeOff } from 'lucide-react';
 import {
   validateEmail,
   validatePassword,
@@ -17,7 +17,7 @@ import {
 import { fetchAddressByCep } from './cepService';
 import './styles.css';
 import { apiUrl } from '@/config/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface FormData {
   name: string;
@@ -55,7 +55,7 @@ interface Service {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { register, isLoading } = useAuth();
+  const { register, isLoading } = useAuthContext();
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -101,6 +101,8 @@ export default function RegisterPage() {
 
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleBlur = (field: keyof FormErrors) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -203,7 +205,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setAlert(null);
 
-    // Mark all fields as touched
     const fieldsToValidate: (keyof FormErrors)[] = [
       'name',
       'email',
@@ -222,7 +223,6 @@ export default function RegisterPage() {
     });
     setTouched(newTouched);
 
-    // Validate all fields
     let allValid = true;
     fieldsToValidate.forEach((field) => {
       if (!validateField(field, formData[field])) {
@@ -255,11 +255,9 @@ export default function RegisterPage() {
 
       setAlert({ type: 'success', message: 'Cadastro realizado com sucesso!' });
       
-      // Redirecionar baseado no tipo de usuário
       setTimeout(() => {
         const storedToken = localStorage.getItem('token');
         if (storedToken) {
-          // Buscar informações do usuário para determinar redirecionamento
           fetch(`${apiUrl}/auth/me`, {
             headers: { 'Authorization': `Bearer ${storedToken}` }
           })
@@ -310,7 +308,9 @@ export default function RegisterPage() {
               setErrors((prev) => ({ ...prev, servicos: '' }));
             }}
           >
-            <span className="type-icon">👤</span>
+            <span className="type-icon">
+              <User size={24} strokeWidth={2} />
+            </span>
             <span className="type-text">Contratante</span>
           </button>
           <button
@@ -318,7 +318,9 @@ export default function RegisterPage() {
             className={`type-btn ${formData.userType === 'prestador' ? 'active' : ''}`}
             onClick={() => setFormData((prev) => ({ ...prev, userType: 'prestador' }))}
           >
-            <span className="type-icon">🔧</span>
+            <span className="type-icon">
+              <Wrench size={24} strokeWidth={2} />
+            </span>
             <span className="type-text">Prestador</span>
           </button>
         </div>
@@ -381,15 +383,25 @@ export default function RegisterPage() {
             <div className="form-row">
               <div className="form-group flex-1">
                 <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => handleChange('password', e.target.value)}
-                  onBlur={() => handleBlur('password')}
-                  className={errors.password && touched.password ? 'border-red-500' : ''}
-                  placeholder="••••••••"
-                />
+                <div className="password-input-container">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => handleChange('password', e.target.value)}
+                    onBlur={() => handleBlur('password')}
+                    className={errors.password && touched.password ? 'border-red-500' : ''}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="password-toggle-btn"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
                 {errors.password && touched.password && (
                   <span className="error-message show">{errors.password}</span>
                 )}
@@ -397,17 +409,27 @@ export default function RegisterPage() {
 
               <div className="form-group flex-1">
                 <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  onBlur={() => handleBlur('confirmPassword')}
-                  className={
-                    errors.confirmPassword && touched.confirmPassword ? 'border-red-500' : ''
-                  }
-                  placeholder="••••••••"
-                />
+                <div className="password-input-container">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                    onBlur={() => handleBlur('confirmPassword')}
+                    className={
+                      errors.confirmPassword && touched.confirmPassword ? 'border-red-500' : ''
+                    }
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="password-toggle-btn"
+                    aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
                 {errors.confirmPassword && touched.confirmPassword && (
                   <span className="error-message show">{errors.confirmPassword}</span>
                 )}

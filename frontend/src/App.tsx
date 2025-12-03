@@ -1,6 +1,4 @@
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect } from "react";
-import { apiUrl } from "./config/api";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,23 +15,13 @@ import ProvidersPage from "./pages/home/ProvidersPage";
 import ClientsPage from "./pages/home/ClientsPage";
 import LoginPage from "./pages/login/LoginPage";
 import RegisterPage from "./pages/register/RegisterPage";
+import AdminAvaliacoes from "./pages/admin/AdminAvaliacoes";
+import AdminServices from "./pages/admin/AdminServices";
 
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  /*useEffect(() => {
-    // Exemplo de chamada à API do backend
-    fetch(`${apiUrl}/orders`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("Dados recebidos do backend:", data);
-      })
-      .catch((error) => {
-        console.error("Erro ao conectar com o backend:", error);
-      });
-  }, []);*/
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -42,9 +30,13 @@ const App = () => {
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route 
+                path="/" 
+                element={<Index />} 
+              />
 
-              <Route path="/login" 
+              <Route 
+                path="/login" 
                 element={<LoginPage />} 
               />
 
@@ -85,7 +77,6 @@ const App = () => {
                 } 
               />
 
-              {/* Rota Prestador - Apenas PRESTADOR */}
               <Route
                 path="/home/providers"
                 element={
@@ -95,7 +86,6 @@ const App = () => {
                 } 
               />
 
-              {/* Rota Cliente - Apenas CONTRATANTE */}
               <Route
                 path="/home/clients"
                 element={
@@ -106,11 +96,34 @@ const App = () => {
               />
 
               <Route
+                path="/admin/avaliacoes"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <AdminLayout>
+                      <AdminAvaliacoes />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route
+                path="/admin/servicos"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <AdminLayout>
+                      <AdminServices />
+                    </AdminLayout>                    
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route
                 path="*"
                 element={
                   <NotFound />
                 } 
               />
+
             </Routes>
           </AuthProvider>
         </BrowserRouter>
