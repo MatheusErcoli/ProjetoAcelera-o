@@ -1,4 +1,4 @@
-const { Router } = require("express");
+/*const { Router } = require("express");
 const {
   getGalleryImages,
   addGalleryImage,
@@ -15,4 +15,4 @@ router.get("/", getGalleryImages);
 router.post("/", authMiddleware, addGalleryImage);
 router.delete("/:id", authMiddleware, deleteGalleryImage);
 
-module.exports = router;
+module.exports = router;*/

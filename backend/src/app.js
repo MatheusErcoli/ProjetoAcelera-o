@@ -34,7 +34,7 @@ app.use("/users", usersRoutes);
 app.use("/reviews", reviewsRoutes);
 app.use("/admin", adminRoutes);
 app.use("/availability", availabilityRoutes);
-app.use("/gallery", galleryRoutes);
+// app.use("/gallery", galleryRoutes);
 
 app.use(errorHandler);
 
